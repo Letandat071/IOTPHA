@@ -32,27 +32,28 @@ const Profile = () => {
 
 
 
-  useEffect(() => {
-    if (!session) {
-      push("/auth/login");
-    } else {
-      const fetchUser = async () => {
-        try {
-          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
-          setUser(res.data);
-  
-          // Check table status
-          const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
-          if (tableStatusRes.data.status === 'deactive') {
-            handleSignOutstatus();  // Sign out if table is deactive
-          }
-        } catch (err) {
-          console.error(err);
+useEffect(() => {
+    const fetchUser = async () => {
+        if (session) {
+            try {
+                const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
+                setUser(res.data);
+
+                // Check table status
+                const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
+                if (tableStatusRes.data.status === 'deactive') {
+                    handleSignOutstatus();  // Sign out if table is deactive
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        } else {
+            push("/auth/login");
         }
-      };
-      fetchUser();
-    }
-  }, [session, push, handleSignOutstatus]);
+    };
+    fetchUser();
+}, [session, push, handleSignOutstatus]);
+
 
   const handleSignOut = async () => {
     if (confirm("Are you sure you want to sign out?")) {
