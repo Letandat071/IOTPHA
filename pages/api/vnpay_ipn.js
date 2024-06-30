@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { sortObject } from '../../../utils/sortObject';
+// import { sortObject } from '../../../utils/sortObject';
 
 export default function handler(req, res) {
   if (req.method === 'GET') {
