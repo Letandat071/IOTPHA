@@ -32,27 +32,54 @@ const Profile = () => {
 
 
 
-  useEffect(() => {
-    if (!session) {
-      push("/auth/login");
-    } else {
-      const fetchUser = async () => {
-        try {
-          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
-          setUser(res.data);
-  
-          // Check table status
-          const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
-          if (tableStatusRes.data.status === 'deactive') {
-            handleSignOutstatus();  // Sign out if table is deactive
+//   useEffect(() => {
+//     const fetchUser = async () => {
+//         if (session) {
+//             try {
+//                 const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
+//                 setUser(res.data);
+
+//                 // Check table status
+//                 const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
+//                 if (tableStatusRes.data.status === 'deactive') {
+//                     handleSignOutstatus();  // Sign out if table is deactive
+//                 }
+//             } catch (err) {
+//                 console.error(err);
+//             }
+//         } else {
+//             push("/auth/login");
+//         }
+//     };
+//     fetchUser();
+// }, [session, push, handleSignOutstatus]);
+
+useEffect(() => {
+  const fetchUser = async () => {
+      console.log("Session: ", session);
+      if (session) {
+          try {
+              const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
+              console.log("User data: ", res.data);
+              setUser(res.data);
+
+              // Check table status
+              const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
+              console.log("Table status: ", tableStatusRes.data.status);
+              if (tableStatusRes.data.status === 'deactive') {
+                  handleSignOutstatus();  // Sign out if table is deactive
+              }
+          } catch (err) {
+              console.error(err);
           }
-        } catch (err) {
-          console.error(err);
-        }
-      };
-      fetchUser();
-    }
-  }, [session, push, handleSignOutstatus]);
+      } else {
+          push("/auth/login");
+      }
+  };
+  fetchUser().catch(err => console.error("Failed to fetch user:", err));
+}, [session, push, handleSignOutstatus]);
+
+
 
   const handleSignOut = async () => {
     if (confirm("Are you sure you want to sign out?")) {
