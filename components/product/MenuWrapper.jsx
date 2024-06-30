@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import Title from "../ui/Title";
 import MenuItem from "./MenuItem";
 
-const MenuWrapper = ({ categoryList, productList }) => {
+const MenuWrapper = ({ categoryList = [], productList = [] }) => {
   const [active, setActive] = useState(0);
   const [productLimit, setProductLimit] = useState(3);
 
