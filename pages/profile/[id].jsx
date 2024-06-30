@@ -2,7 +2,7 @@ import axios from "axios";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback  } from "react";
 import Account from "../../components/profile/Account";
 import Order from "../../components/profile/Order";
 import Password from "../../components/profile/Password";
@@ -13,6 +13,24 @@ const Profile = () => {
   const [tabs, setTabs] = useState(0);
   const { push } = useRouter();
   const [user, setUser] = useState(null);
+
+
+  const handleSignOutstatus = useCallback(async () => {
+    if (user) {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableName: user.tableName }),
+      });
+      signOut({ redirect: false });
+      push("/auth/login");
+    }
+  }, [user, push]);
+
+
+
 
   useEffect(() => {
     if (!session) {
@@ -34,7 +52,7 @@ const Profile = () => {
       };
       fetchUser();
     }
-  }, [session, push]);
+  }, [session, push, handleSignOutstatus]);
 
   const handleSignOut = async () => {
     if (confirm("Are you sure you want to sign out?")) {
@@ -54,21 +72,6 @@ const Profile = () => {
     }
   };
 
-  const handleSignOutstatus = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ tableName: user?.tableName }), // Ensure user is not null
-    });
-    signOut({ redirect: false });
-    push("/auth/login");
-    // toast.success("Sign out successfully", {
-    //   position: "bottom-left",
-    //   theme: "colored",
-    // });
-  };
 
 
 
