@@ -32,6 +32,7 @@ const Profile = () => {
 
 
 
+<<<<<<< HEAD
 //   useEffect(() => {
 //     const fetchUser = async () => {
 //         if (session) {
@@ -80,6 +81,30 @@ useEffect(() => {
 }, [session, push, handleSignOutstatus]);
 
 
+=======
+useEffect(() => {
+    const fetchUser = async () => {
+        if (session) {
+            try {
+                const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
+                setUser(res.data);
+
+                // Check table status
+                const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
+                if (tableStatusRes.data.status === 'deactive') {
+                    handleSignOutstatus();  // Sign out if table is deactive
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        } else {
+            push("/auth/login");
+        }
+    };
+    fetchUser();
+}, [session, push, handleSignOutstatus]);
+
+>>>>>>> eafe4ebd54c6dbeaa63cded975f01efb0e209348
 
   const handleSignOut = async () => {
     if (confirm("Are you sure you want to sign out?")) {
