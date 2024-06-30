@@ -73,7 +73,7 @@ const Login = () => {
         setCurrentUser(
           res.data?.find((user) => user._id === session?.user?.id)
         );
-        session && push("/");
+        session && push("/profile/" + currentUser?._id);
         // "/profile/" + currentUser?._id
       } catch (err) {
         console.log(err);

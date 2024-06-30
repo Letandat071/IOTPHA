@@ -117,20 +117,6 @@ useEffect(() => {
           <b className="text-2xl mt-1">{user.fullName}</b>
         </div>
         <ul className="text-center font-semibold">
-          {/* <li
-            className={`border w-full p-3 cursor-pointer hover:bg-primary hover:text-white transition-all ${tabs === 0 && "bg-primary text-white"}`}
-            onClick={() => setTabs(0)}
-          >
-            <i className="fa fa-home"></i>
-            <button className="ml-1">Account</button>
-          </li>
-          <li
-            className={`border w-full p-3 cursor-pointer hover:bg-primary hover:text-white transition-all ${tabs === 1 && "bg-primary text-white"}`}
-            onClick={() => setTabs(1)}
-          >
-            <i className="fa fa-key"></i>
-            <button className="ml-1">Password</button>
-          </li> */}
           <li
             className={`border w-full p-3 cursor-pointer hover:bg-primary hover:text-white transition-all ${tabs === 2 && "bg-primary text-white"}`}
             onClick={() => setTabs(0)}
@@ -144,8 +130,7 @@ useEffect(() => {
           </li>
         </ul>
       </div>
-      {/* {tabs === 0 && <Account user={user} />}
-      {tabs === 1 && <Password user={user} />} */}
+      
       {tabs === 0 && <Order />}
     </div>
   );
