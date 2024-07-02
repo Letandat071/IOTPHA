@@ -3,16 +3,23 @@ import Link from "next/link";
 import Input from "../../components/form/Input";
 import Title from "../../components/ui/Title";
 import { loginSchema } from "../../schema/login";
-import {getSession, signIn, signOut, useSession } from "next-auth/react";
+import { getSession, signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
+
 const Login = () => {
-  const { push } = useRouter();
+  const { push, query } = useRouter();
   const { data: session } = useSession();
   const [currentUser, setCurrentUser] = useState();
 
+  useEffect(() => {
+    // Set tableId from query parameter if it exists
+    if (query.tableId) {
+      formik.setFieldValue("tableName", query.tableId);
+    }
+  }, [query.tableId]);
 
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
@@ -29,12 +36,11 @@ const Login = () => {
       });
       push("/profile/" + user._id);
     } catch (err) {
-      if(err.message != "user is not defined"){
+      if (err.message != "user is not defined") {
         toast.error(err.message);
       }
     }
   };
-  
 
   const onLogout = async () => {
     try {
@@ -44,7 +50,7 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tableName: "1" }), // Thay thế "1" bằng giá trị thực tế
+        body: JSON.stringify({ tableName: "1" }),
       });
       toast.success("Logout successfully", {
         position: "bottom-left",
@@ -59,12 +65,11 @@ const Login = () => {
   const formik = useFormik({
     initialValues: {
       fullName: "",
-      tableName: "",
+      tableName: query.tableId || "",
     },
     onSubmit,
     validationSchema: loginSchema,
   });
-
 
   useEffect(() => {
     const getUser = async () => {
@@ -74,7 +79,6 @@ const Login = () => {
           res.data?.find((user) => user._id === session?.user?.id)
         );
         session && push("/profile/" + currentUser?._id);
-        // "/profile/" + currentUser?._id
       } catch (err) {
         console.log(err);
       }
@@ -100,6 +104,7 @@ const Login = () => {
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
+      readOnly: true, // Make this field read-only
     },
   ];
 
@@ -142,7 +147,6 @@ const Login = () => {
   );
 };
 
-
 export async function getServerSideProps({ req }) {
   const session = await getSession({ req });
 
@@ -161,7 +165,5 @@ export async function getServerSideProps({ req }) {
     props: {},
   };
 }
-
-
 
 export default Login;
