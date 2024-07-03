@@ -137,7 +137,7 @@ const Login = () => {
       id: 2,
       name: "tableName",
       type: "text",
-      placeholder: "Vui lòng quét NFC trên bàn",
+      placeholder: formik.values.tableName ? "" : "Vui lòng quét NFC trên bàn",
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
