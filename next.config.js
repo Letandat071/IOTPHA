@@ -10,6 +10,12 @@ const nextConfig = {
       "t4.ftcdn.net"
     ],
   },
+  publicRuntimeConfig: {
+    // Có sẵn trên cả server và client
+  },
+  serverRuntimeConfig: {
+    // Chỉ có sẵn trên server
+  },
 };
 
 module.exports = nextConfig;

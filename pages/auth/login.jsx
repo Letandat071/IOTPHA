@@ -10,16 +10,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 const Login = () => {
-  const { push, query } = useRouter();
+  const { push } = useRouter();
   const { data: session } = useSession();
   const [currentUser, setCurrentUser] = useState();
-
-  useEffect(() => {
-    // Set tableId from query parameter if it exists
-    if (query.tableId) {
-      formik.setFieldValue("tableName", query.tableId);
-    }
-  }, [query.tableId]);
 
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
@@ -34,38 +27,18 @@ const Login = () => {
         position: "bottom-left",
         theme: "colored",
       });
-      push("/profile/" + user._id);
+      push("/profile/" + res.user._id);
     } catch (err) {
-      if (err.message != "user is not defined") {
+      if (err.message !== "user is not defined") {
         toast.error(err.message);
       }
-    }
-  };
-
-  const onLogout = async () => {
-    try {
-      await signOut({ redirect: false });
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tableName: "1" }),
-      });
-      toast.success("Logout successfully", {
-        position: "bottom-left",
-        theme: "colored",
-      });
-      push("/auth/login");
-    } catch (err) {
-      toast.error(err.message);
     }
   };
 
   const formik = useFormik({
     initialValues: {
       fullName: "",
-      tableName: query.tableId || "",
+      tableName: "",
     },
     onSubmit,
     validationSchema: loginSchema,
@@ -78,13 +51,58 @@ const Login = () => {
         setCurrentUser(
           res.data?.find((user) => user._id === session?.user?.id)
         );
-        session && push("/profile/" + currentUser?._id);
+        session && push("/");
+        // "/profile/" + currentUser?._id
       } catch (err) {
         console.log(err);
       }
     };
     getUser();
   }, [session, push, currentUser]);
+
+  useEffect(() => {
+    if ('NDEFReader' in window) {
+      const nfcReader = new window.NDEFReader();
+
+      nfcReader.scan().then(() => {
+        nfcReader.onreading = (event) => {
+          for (const record of event.message.records) {
+            if (record.recordType === "text") {
+              const textDecoder = new TextDecoder(record.encoding);
+              const nfcData = textDecoder.decode(record.data);
+              const tableNameMatch = nfcData.match(/TableName=(\d+)/);
+
+              if (tableNameMatch) {
+                formik.setFieldValue('tableName', tableNameMatch[1]);
+              }
+            }
+          }
+        };
+      }).catch(error => {
+        console.log('NFC scanning failed: ', error);
+      });
+    }
+  }, [formik]);
+
+  const onLogout = async () => {
+    try {
+      await signOut({ redirect: false });
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableName: formik.values.tableName }),
+      });
+      toast.success("Logout successfully", {
+        position: "bottom-left",
+        theme: "colored",
+      });
+      push("/auth/login");
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
 
   const inputs = [
     {
@@ -104,7 +122,6 @@ const Login = () => {
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
-      readOnly: true, // Make this field read-only
     },
   ];
 
