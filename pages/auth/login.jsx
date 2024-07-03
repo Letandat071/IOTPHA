@@ -45,22 +45,6 @@ const Login = () => {
   });
 
   useEffect(() => {
-    const getUser = async () => {
-      try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`);
-        setCurrentUser(
-          res.data?.find((user) => user._id === session?.user?.id)
-        );
-        session && push("/");
-        // "/profile/" + currentUser?._id
-      } catch (err) {
-        console.log(err);
-      }
-    };
-    getUser();
-  }, [session, push, currentUser]);
-
-  useEffect(() => {
     if ('NDEFReader' in window) {
       const nfcReader = new window.NDEFReader();
 
