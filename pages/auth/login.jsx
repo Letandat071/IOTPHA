@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+
 const Login = () => {
   const { push } = useRouter();
   const { data: session } = useSession();
@@ -136,11 +137,13 @@ const Login = () => {
       id: 2,
       name: "tableName",
       type: "text",
-      placeholder: "Table Name",
+      placeholder: "Vui lòng quét NFC trên bàn",
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
+      disabled: true, // Thêm thuộc tính disabled vào đây
     },
+    
   ];
 
   return (
