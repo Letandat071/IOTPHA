@@ -19,19 +19,36 @@ const Login = () => {
     let options = { redirect: false, fullName, tableName };
     try {
       const res = await signIn("credentials", options);
+      console.log("Sign in response:", res); // Debug log
+  
       if (res.error) {
         throw new Error(res.error);
       }
+  
       actions.resetForm();
-      toast.success("Login successfully", {
+      toast.success("Login successful", {
         position: "bottom-left",
         theme: "colored",
       });
-      push("/profile/" + res.user._id);
-    } catch (err) {
-      if (err.message !== "user is not defined") {
-        toast.error(err.message);
+  
+      if (res.ok) {
+        // Fetch user data after successful login
+        const userResponse = await axios.get('/api/auth/session');
+        console.log("User session data:", userResponse.data); // Debug log
+  
+        if (userResponse.data.user && userResponse.data.user.id) {
+          push("/profile/" + userResponse.data.user.id);
+        } else {
+          console.error("User ID not available in session data");
+          toast.error("Login successful, but user data is incomplete");
+        }
+      } else {
+        console.error("Login response not OK");
+        toast.error("Login process completed, but encountered an issue");
       }
+    } catch (err) {
+      console.error("Login error:", err); // Debug log
+      toast.error(err.message || "An error occurred during login");
     }
   };
 
@@ -43,6 +60,23 @@ const Login = () => {
     onSubmit,
     validationSchema: loginSchema,
   });
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        if (session?.user?.id) {
+          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`);
+          setCurrentUser(res.data?.find((user) => user._id === session.user.id));
+          if (session && currentUser) {
+            push("/profile/" + currentUser._id);
+          }
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    getUser();
+  }, [session, push, currentUser]);
 
   useEffect(() => {
     if ('NDEFReader' in window) {
@@ -137,11 +171,13 @@ const Login = () => {
           >
             LOGOUT
           </button>
-          <Link href="/auth/register">
-            <span className="text-sm underline cursor-pointer text-secondary">
-              Do you not have an account?
-            </span>
-          </Link>
+          <button
+            className="btn-primary !bg-secondary"
+            type="button"
+            
+          >
+            Bật NFC Để Quét
+          </button>
         </div>
       </form>
     </div>
@@ -151,15 +187,17 @@ const Login = () => {
 export async function getServerSideProps({ req }) {
   const session = await getSession({ req });
 
-  const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`);
-  const user = res.data?.find((user) => user._id === session?.user.id);
-  if (session && user) {
-    return {
-      redirect: {
-        destination: "/profile/" + user._id,
-        permanent: false,
-      },
-    };
+  if (session?.user?.id) {
+    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`);
+    const user = res.data?.find((user) => user._id === session.user.id);
+    if (user) {
+      return {
+        redirect: {
+          destination: "/profile/" + user._id,
+          permanent: false,
+        },
+      };
+    }
   }
 
   return {
