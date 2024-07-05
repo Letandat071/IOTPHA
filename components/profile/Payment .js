@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
@@ -8,6 +8,13 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const Payment = ({ orders, onClose, onPaymentSuccess }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [totalAmount, setTotalAmount] = useState(0);
+
+  useEffect(() => {
+    const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
+    const total = unpaidOrders.reduce((sum, order) => sum + parseFloat(order.total * 1000), 0);
+    setTotalAmount(total);
+  }, [orders]);
 
   const handlePaymentSelect = (method) => {
     setSelectedPayment(method);
@@ -19,21 +26,36 @@ const Payment = ({ orders, onClose, onPaymentSuccess }) => {
       return;
     }
 
+    if (!totalAmount || totalAmount <= 0) {
+      toast.error("Số tiền thanh toán không hợp lệ.");
+      return;
+    }
+
     try {
-      if (selectedPayment === 'VNPay') {
-        const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
-        const amount = unpaidOrders.reduce((total, order) => total + order.amount, 0);
-        const orderId = unpaidOrders[0]._id;
-        const orderDescription = "Thanh toan don hang";
-        const orderType = "billpayment";
-        const language = "vn";
+      const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
+      const orderId = unpaidOrders[0]._id;
 
-        const response = await axios.post('/api/create_payment', { amount, orderId, orderDescription, orderType, language });
-        const { paymentUrl } = response.data;
+      if (selectedPayment === 'MoMo') {
+        const response = await axios.post('/api/payment/momo', {
+          amount: Math.round(totalAmount), // Đảm bảo amount là số nguyên
+          orderId,
+          orderInfo: "Thanh toan don hang",
+          redirectUrl: `${window.location.origin}/payment-result`,
+          ipnUrl: `${process.env.NEXT_PUBLIC_API_URL}/api/payment/momo-ipn`, // Đảm bảo giá trị này không rỗng
+          extraData: "",
+          requestType: "captureWallet"
+        });
 
-        window.location.href = paymentUrl;
+        const payUrl = response.data.payUrl;
+        if (payUrl) {
+          window.location.href = payUrl;
+        } else {
+          toast.error("Không nhận được URL thanh toán từ MoMo.");
+        }
+      } else if (selectedPayment === 'VNPay') {
+        // Xử lý thanh toán VNPay
       } else if (selectedPayment === 'tienmat') {
-        const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
+        // Xử lý thanh toán tiền mặt
         const updatePromises = unpaidOrders.map(order =>
           axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
             paymentstatus: 'Đang chờ xác nhận',
@@ -41,17 +63,19 @@ const Payment = ({ orders, onClose, onPaymentSuccess }) => {
         );
 
         await Promise.all(updatePromises);
-
-        toast.success("Đã yêu gửi cầu thanh toán tiền mặt đến nhân viên");
-        setTimeout(() => {
-          onPaymentSuccess();
-        }, 2000);
+        toast.success("Đã gửi yêu cầu thanh toán tiền mặt đến nhân viên");
+        setTimeout(() => onPaymentSuccess(), 2000);
       } else {
         toast.error("Phương thức thanh toán này chưa được hỗ trợ.");
       }
     } catch (error) {
-      console.error('Lỗi khi xử lý thanh toán:', error); // Log lỗi để kiểm tra
-      toast.error("Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.");
+      console.error('Lỗi khi xử lý thanh toán:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        toast.error(`Lỗi: ${error.response.data.message || 'Có lỗi xảy ra khi thanh toán.'}`);
+      } else {
+        toast.error("Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.");
+      }
     }
   };
 
@@ -61,9 +85,13 @@ const Payment = ({ orders, onClose, onPaymentSuccess }) => {
         <div className="payment-title">
           <h4>Vui lòng chọn phương thức <span style={{ color: '#6064b6' }}>thanh toán</span></h4>
         </div>
+        <div className="mb-4">
+          <p>Tổng số tiền cần thanh toán: {totalAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</p>
+        </div>
         <form className="payment-form">
           <input type="radio" name="payment" id="tienmat" onChange={() => handlePaymentSelect('tienmat')} />
           <input type="radio" name="payment" id="VNPay" onChange={() => handlePaymentSelect('VNPay')} />
+          <input type="radio" name="payment" id="MoMo" onChange={() => handlePaymentSelect('MoMo')} />
           <div className="payment-category">
             <label htmlFor="tienmat" className={`payment-label tienmatMethod ${selectedPayment === 'tienmat' ? 'selected' : ''}`}>
               <div className="imgContainer tienmat">
@@ -80,6 +108,15 @@ const Payment = ({ orders, onClose, onPaymentSuccess }) => {
               </div>
               <div className="imgName">
                 <span>VNPay</span>
+                <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
+              </div>
+            </label>
+            <label htmlFor="MoMo" className={`payment-label MoMoMethod ${selectedPayment === 'MoMo' ? 'selected' : ''}`}>
+              <div className="imgContainer MoMo">
+                <Image src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Square.png" alt="MoMo" width={50} height={50} />
+              </div>
+              <div className="imgName">
+                <span>MoMo</span>
                 <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
               </div>
             </label>
