@@ -79,8 +79,6 @@ const Products = () => {
     }
   };
 
-
-  
   const handleQuantityChange = async (productId, change) => {
     const product = products.find(p => p._id === productId);
     if (!product) return;
@@ -116,12 +114,46 @@ const Products = () => {
     }
   };
 
+  const handleQuantityInputChange = async (productId, newQuantity) => {
+    const product = products.find(p => p._id === productId);
+    if (!product) return;
+
+    const quantity = newQuantity === '' ? 0 : Math.max(0, newQuantity);
+
+    try {
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/products/${productId}`,
+        { ...product, soLuong: quantity }
+      );
+      if (res.status === 200) {
+        setProducts(products.map(p => 
+          p._id === productId ? { ...p, soLuong: quantity } : p
+        ));
+        toast.success("Cập nhật số lượng thành công",{
+          position: "top-left",
+          theme:"light",
+        });
+      } else {
+        toast.error("Cập nhật số lượng thất bại",{
+          position: "top-left",
+          theme:"colored",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Có lỗi xảy ra khi cập nhật số lượng",{
+        position: "top-left",
+        theme:"colored",
+      });
+    }
+  };
+
   const formatPrice = (price) => {
     return price.toFixed(3).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  return ( 
-     <div className="lg:p-8 p-4 flex-1 lg:mt-0 relative min-h-[400px] w-full flex flex-col justify-center bg-white-50 rounded-lg shadow-lg">
+  return (
+    <div className="lg:p-8 p-4 flex-1 lg:mt-0 relative min-h-[400px] w-full flex flex-col justify-center bg-white-50 rounded-lg shadow-lg">
       <Title addClass="text-[40px] text-center text-black">Món Ăn</Title>
       <div className="mt-5 w-full h-[calc(100vh-200px)] overflow-auto">
         <div className="inline-block min-w-full align-middle">
@@ -173,7 +205,13 @@ const Products = () => {
                         >
                           <FontAwesomeIcon icon={faChevronDown} />
                         </button>
-                        <span className="text-sm text-gray-900">{product.soLuong}</span>
+                        <input
+                          type="number"
+                          className="w-16 text-sm text-center border border-gray-300 rounded"
+                          value={product.soLuong}
+                          onChange={(e) => handleQuantityInputChange(product._id, e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                          onBlur={(e) => handleQuantityInputChange(product._id, e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                        />
                         <button
                           className="p-1 bg-gray-200 rounded"
                           onClick={() => handleQuantityChange(product._id, 1)}
