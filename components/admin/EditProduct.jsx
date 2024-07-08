@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { toast } from "react-toastify";
 import axios from "axios";
 
 const EditProduct = ({ setIsEditProductModal, selectedProduct, handleUpdateProduct }) => {
   const [product, setProduct] = useState(selectedProduct);
   const [categories, setCategories] = useState([]);
   const [visible, setVisible] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const getCategories = async () => {
@@ -28,12 +28,52 @@ const EditProduct = ({ setIsEditProductModal, selectedProduct, handleUpdateProdu
       ...prevProduct,
       [name]: value,
     }));
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [name]: "",
+    }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    let errorMessage = "";
+    if (!value) {
+      switch (name) {
+        case "title":
+          errorMessage = "Tên sản phẩm không được bỏ trống";
+          break;
+        case "category":
+          errorMessage = "Danh mục không được bỏ trống";
+          break;
+        case "prices":
+          errorMessage = "Giá không được bỏ trống";
+          break;
+        default:
+          errorMessage = "Trường này không được bỏ trống";
+      }
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [name]: errorMessage,
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!product.title) newErrors.title = "Tên sản phẩm không được bỏ trống";
+    if (!product.category) newErrors.category = "Danh mục không được bỏ trống";
+    if (!product.prices[0]) newErrors.prices = "Giá không được bỏ trống";
+    return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting product:", product);
-    handleUpdateProduct(product);
+    const newErrors = validateForm();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+    } else {
+      handleUpdateProduct(product);
+    }
   };
 
   const handleClose = () => {
@@ -54,9 +94,11 @@ const EditProduct = ({ setIsEditProductModal, selectedProduct, handleUpdateProdu
               name="title"
               value={product.title}
               onChange={handleChange}
+              onBlur={handleBlur}
               className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+            {errors.title && <p className="text-red-500 text-sm pt-2">{errors.title}</p>}
           </label>
           <label className="block">
             <span className="text-gray-700">Danh mục:</span>
@@ -64,6 +106,7 @@ const EditProduct = ({ setIsEditProductModal, selectedProduct, handleUpdateProdu
               name="category"
               value={product.category}
               onChange={handleChange}
+              onBlur={handleBlur}
               className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
@@ -73,6 +116,7 @@ const EditProduct = ({ setIsEditProductModal, selectedProduct, handleUpdateProdu
                 </option>
               ))}
             </select>
+            {errors.category && <p className="text-red-500 text-sm pt-2">{errors.category}</p>}
           </label>
           <label className="block">
             <span className="text-gray-700">Giá:</span>
@@ -86,9 +130,11 @@ const EditProduct = ({ setIsEditProductModal, selectedProduct, handleUpdateProdu
                   prices: [parseFloat(e.target.value)],
                 }))
               }
+              onBlur={handleBlur}
               className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+            {errors.prices && <p className="text-red-500 text-sm pt-2">{errors.prices}</p>}
           </label>
           <div className="flex justify-end mt-6 space-x-2">
             <button

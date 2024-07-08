@@ -311,61 +311,6 @@ const AddProduct = ({ setIsProductModal }) => {
                 <span className="text-xs mt-1 text-danger">{errors.soLuong}</span>
               )}
             </div>
-            {/* <div className="flex flex-col text-sm mt-4 mb-16">
-              <span className="font-semibold mb-1">Món Gọi Thêm</span>
-              <div className="flex gap-4 md:flex-row flex-col items-center">
-                <input
-                  type="text"
-                  className="border border-gray-400 p-1 text-sm outline-none rounded-md"
-                  placeholder="Vui Lòng Nhập Tên Món"
-                  name="text"
-                  onChange={(e) => {
-                    setExtra({ ...extra, [e.target.name]: e.target.value });
-                  }}
-                  value={extra.text}
-                />
-                <input
-                  type="number"
-                  className="border border-gray-400 p-1 text-sm outline-none rounded-md"
-                  placeholder="0.00"
-                  name="price"
-                  onChange={(e) => {
-                    setExtra({ ...extra, [e.target.name]: e.target.value });
-                  }}
-                  value={extra.price}
-                />
-                <button
-                  className="btn-primary !bg-blue-600 text-white rounded-md px-4 py-2"
-                  onClick={handleExtra}
-                  type="button"
-                >
-                  Thêm
-                </button>
-              </div>
-              <div className="mt-2 ">
-                {extraOptions.map((option, index) => (
-                  <span
-                    className="inline-block border border-orange-600 text-orange-700 p-2 rounded-xl text-xs mr-2 my-2"
-                    key={index}
-                  >
-                    {option.text}{" "}
-                    <span className="ml-3 text-emerald-600 ">
-                      {option.price[0].toFixed(3)} VNĐ
-                    </span>
-                    <button
-                      className="ml-2 rounded-full bg-red-700 text-white px-1 m-0"
-                      onClick={() => {
-                        setExtraOptions(
-                          extraOptions.filter((item) => item !== option)
-                        );
-                      }}
-                    >
-                      X
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div> */}
             {btnDisabled ? (
               <button
                 className="btn-primary !bg-green-400 right-8 bottom-6 absolute focus:outline-none cursor-not-allowed rounded-md px-4 py-2"

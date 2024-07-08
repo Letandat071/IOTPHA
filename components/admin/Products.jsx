@@ -13,16 +13,23 @@ const Products = () => {
   const [isProductModal, setIsProductModal] = useState(false);
   const [isEditProductModal, setIsEditProductModal] = useState(false);
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAllSelected, setIsAllSelected] = useState(false);
 
   const getProducts = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/products`
-      );
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/products`);
       setProducts(res.data);
+      setFilteredProducts(res.data);
+      const uniqueCategories = [...new Set(res.data.map(product => product.category))];
+      setCategories(uniqueCategories);
     } catch (error) {
       console.log(error);
     }
@@ -32,6 +39,27 @@ const Products = () => {
     getProducts();
   }, []);
 
+  useEffect(() => {
+    filterProducts();
+  }, [searchTerm, selectedCategories]);
+
+  const filterProducts = () => {
+    let filtered = products;
+
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(product => selectedCategories.includes(product.category));
+    }
+
+    setFilteredProducts(filtered);
+  };
+
   const handleDelete = (id) => {
     setProductToDelete(id);
     setIsConfirmModalOpen(true);
@@ -39,9 +67,7 @@ const Products = () => {
 
   const confirmDelete = async () => {
     try {
-      const res = await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/products/${productToDelete}`
-      );
+      const res = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/products/${productToDelete}`);
       if (res.status === 200) {
         toast.success("Sản phẩm xóa thành công");
         getProducts();
@@ -92,24 +118,24 @@ const Products = () => {
         { ...product, soLuong: newQuantity }
       );
       if (res.status === 200) {
-        setProducts(products.map(p => 
+        setProducts(products.map(p =>
           p._id === productId ? { ...p, soLuong: newQuantity } : p
         ));
-        toast.success("Cập nhật số lượng thành công",{
+        toast.success("Cập nhật số lượng thành công", {
           position: "top-left",
-          theme:"light",
+          theme: "light",
         });
       } else {
-        toast.error("Cập nhật số lượng thất bại",{
+        toast.error("Cập nhật số lượng thất bại", {
           position: "top-left",
-          theme:"colored",
+          theme: "colored",
         });
       }
     } catch (error) {
       console.log(error);
-      toast.error("Có lỗi xảy ra khi cập nhật số lượng",{
+      toast.error("Có lỗi xảy ra khi cập nhật số lượng", {
         position: "top-left",
-        theme:"colored",
+        theme: "colored",
       });
     }
   };
@@ -126,24 +152,24 @@ const Products = () => {
         { ...product, soLuong: quantity }
       );
       if (res.status === 200) {
-        setProducts(products.map(p => 
+        setProducts(products.map(p =>
           p._id === productId ? { ...p, soLuong: quantity } : p
         ));
-        toast.success("Cập nhật số lượng thành công",{
+        toast.success("Cập nhật số lượng thành công", {
           position: "top-left",
-          theme:"light",
+          theme: "light",
         });
       } else {
-        toast.error("Cập nhật số lượng thất bại",{
+        toast.error("Cập nhật số lượng thất bại", {
           position: "top-left",
-          theme:"colored",
+          theme: "colored",
         });
       }
     } catch (error) {
       console.log(error);
-      toast.error("Có lỗi xảy ra khi cập nhật số lượng",{
+      toast.error("Có lỗi xảy ra khi cập nhật số lượng", {
         position: "top-left",
-        theme:"colored",
+        theme: "colored",
       });
     }
   };
@@ -152,9 +178,93 @@ const Products = () => {
     return price.toFixed(3).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
+  const handleCategoryChange = (category) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(selectedCategories.filter(c => c !== category));
+    } else {
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
+
+  const handleSelectAllCategories = () => {
+    if (isAllSelected) {
+      setSelectedCategories([]);
+    } else {
+      setSelectedCategories(categories);
+    }
+    setIsAllSelected(!isAllSelected);
+  };
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
   return (
     <div className="lg:p-8 p-4 flex-1 lg:mt-0 relative min-h-[400px] w-full flex flex-col justify-center bg-white-50 rounded-lg shadow-lg">
       <Title addClass="text-[40px] text-center text-black">Món Ăn</Title>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mt-5 space-y-4 md:space-y-0">
+        <input
+          type="text"
+          placeholder="Tìm kiếm"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="p-2 border border-gray-300 rounded"
+        />
+        <div className="relative inline-block text-left z-20">
+          <div>
+            <button
+              type="button"
+              className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              onClick={toggleDropdown}
+            >
+              Chọn danh mục
+              <svg
+                className="-mr-1 ml-2 h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 01.707.293l5 5a1 1 0 11-1.414 1.414L10 5.414 5.707 9.707a1 1 0 11-1.414-1.414l5-5A1 1 0 0110 3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+          {isDropdownOpen && (
+            <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+              <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                <button
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                  onClick={handleSelectAllCategories}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleSelectAllCategories}
+                    className="form-checkbox"
+                  />
+                  <span className="ml-2">Chọn tất cả</span>
+                </button>
+                {categories.map((category) => (
+                  <label key={category} className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                    <input
+                      type="checkbox"
+                      value={category}
+                      checked={selectedCategories.includes(category)}
+                      onChange={() => handleCategoryChange(category)}
+                      className="form-checkbox"
+                    />
+                    <span className="ml-2">{category}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="mt-5 w-full h-[calc(100vh-200px)] overflow-auto">
         <div className="inline-block min-w-full align-middle">
           <div className="overflow-hidden border-b border-gray-200 shadow sm:rounded-lg">
@@ -179,7 +289,7 @@ const Products = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <tr key={product._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
