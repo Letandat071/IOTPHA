@@ -3,15 +3,17 @@ import Title from "../ui/Title";
 import axios from "axios";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import Payment from "./Payment ";
 import dynamic from 'next/dynamic';
-import { createMoMoPayment } from './Payment ';
+import Swal from 'sweetalert2';
+
+const Payment = dynamic(() => import('./Payment '), { ssr: false });
 const BillPopup = dynamic(() => import('./BillPopup'), { ssr: false });
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
   const [showPayment, setShowPayment] = useState(false);
   const [showBillPopup, setShowBillPopup] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const { data: session } = useSession();
   const router = useRouter();
@@ -32,6 +34,49 @@ const Order = () => {
   useEffect(() => {
     getOrders();
   }, [getOrders]);
+
+  useEffect(() => {
+    const handlePaymentSuccess = async () => {
+      const { session_id } = router.query;
+      if (session_id) {
+        try {
+          const response = await axios.get(`/api/stripe-sessions/${session_id}`);
+          const orderIds = response.data.metadata.orderIds.split(',');
+
+          const updatePromises = orderIds.map(orderId =>
+            axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}`, {
+              paymentstatus: 'Đã thanh toán',
+            })
+          );
+
+          await Promise.all(updatePromises);
+
+          setPaymentSuccess(true);
+          await getOrders();
+          
+          // Remove the session_id from the URL
+          router.replace(router.pathname, undefined, { shallow: true });
+        } catch (error) {
+          console.error('Lỗi khi cập nhật trạng thái đơn hàng:', error);
+        }
+      }
+    };
+
+    if (router.query.session_id) {
+      handlePaymentSuccess();
+    }
+  }, [router.query.session_id, getOrders, router]);
+
+  useEffect(() => {
+    if (paymentSuccess) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Thanh toán thành công!',
+        text: 'Đơn hàng của bạn đã được thanh toán thành công.',
+      });
+      setPaymentSuccess(false);
+    }
+  }, [paymentSuccess]);
 
   const handleSubmitPayment = () => {
     setShowPayment(true);
@@ -63,10 +108,6 @@ const Order = () => {
     return `${formattedInteger}.${decimalPart} VNĐ`;
   };
 
-  const handleMoMoPayment = (order) => {
-    createMoMoPayment(order.amount, order.id);
-  };
- 
   return (
     <div className="lg:p-8 flex-1 lg:mt-0 mt-5">
       <Title addClass="text-[40px]">Menu đã đặt hàng</Title>
