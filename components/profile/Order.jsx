@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import Payment from "./Payment ";
 import dynamic from 'next/dynamic';
-
+import { createMoMoPayment } from './Payment ';
 const BillPopup = dynamic(() => import('./BillPopup'), { ssr: false });
 
 const Order = () => {
@@ -62,6 +62,10 @@ const Order = () => {
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return `${formattedInteger}.${decimalPart} VNĐ`;
   };
+
+  const handleMoMoPayment = (order) => {
+    createMoMoPayment(order.amount, order.id);
+  };
  
   return (
     <div className="lg:p-8 flex-1 lg:mt-0 mt-5">
@@ -116,7 +120,6 @@ const Order = () => {
           </tbody>
         </table>
       </div>
-      {/* Payment section */}
       <div className="mt-8 flex justify-between">
         <div>
           <h2 className="text-xl font-semibold mb-2">Thanh toán</h2>

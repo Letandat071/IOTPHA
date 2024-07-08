@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
@@ -8,128 +8,108 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const Payment = ({ orders, onClose, onPaymentSuccess }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [totalAmount, setTotalAmount] = useState(0);
-
-  useEffect(() => {
-    const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
-    const total = unpaidOrders.reduce((sum, order) => sum + parseFloat(order.total * 1000), 0);
-    setTotalAmount(total);
-  }, [orders]);
 
   const handlePaymentSelect = (method) => {
     setSelectedPayment(method);
   };
 
-  const handlePaymentClick = async () => {
-    if (!selectedPayment) {
-      toast.error("Vui lòng chọn phương thức thanh toán.");
-      return;
-    }
+  const handlePaymentClick = async () => { if (!selectedPayment) {
+    toast.error("Vui lòng chọn phương thức thanh toán.");
+    return;
+  }
 
-    if (!totalAmount || totalAmount <= 0) {
-      toast.error("Số tiền thanh toán không hợp lệ.");
-      return;
-    }
-
-    try {
+  try {
+    if (selectedPayment === 'VNPay') {
       const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
+      const amount = unpaidOrders.reduce((total, order) => total + order.amount, 0);
       const orderId = unpaidOrders[0]._id;
+      const orderDescription = "Thanh toan don hang";
+      const orderType = "billpayment";
+      const language = "vn";
 
-      if (selectedPayment === 'MoMo') {
-        const response = await axios.post('/api/payment/momo', {
-          amount: Math.round(totalAmount), // Đảm bảo amount là số nguyên
-          orderId,
-          orderInfo: "Thanh toan don hang",
-          redirectUrl: `${window.location.origin}/payment-result`,
-          ipnUrl: `${process.env.NEXT_PUBLIC_API_URL}/api/payment/momo-ipn`, // Đảm bảo giá trị này không rỗng
-          extraData: "",
-          requestType: "captureWallet"
-        });
+      const response = await axios.post('/api/create_payment', { amount, orderId, orderDescription, orderType, language });
+      const { paymentUrl } = response.data;
 
-        const payUrl = response.data.payUrl;
-        if (payUrl) {
-          window.location.href = payUrl;
-        } else {
-          toast.error("Không nhận được URL thanh toán từ MoMo.");
-        }
-      } else if (selectedPayment === 'VNPay') {
-        // Xử lý thanh toán VNPay
-      } else if (selectedPayment === 'tienmat') {
-        // Xử lý thanh toán tiền mặt
-        const updatePromises = unpaidOrders.map(order =>
-          axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
-            paymentstatus: 'Đang chờ xác nhận',
-          })
-        );
+      window.location.href = paymentUrl;
+    } else if (selectedPayment === 'tienmat') {
+      const unpaidOrders = orders.filter(order => order.paymentstatus === "Chưa thanh toán");
+      const updatePromises = unpaidOrders.map(order =>
+        axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
+          paymentstatus: 'Đang chờ xác nhận',
+        })
+      );
 
-        await Promise.all(updatePromises);
-        toast.success("Đã gửi yêu cầu thanh toán tiền mặt đến nhân viên");
-        setTimeout(() => onPaymentSuccess(), 2000);
-      } else {
-        toast.error("Phương thức thanh toán này chưa được hỗ trợ.");
-      }
-    } catch (error) {
-      console.error('Lỗi khi xử lý thanh toán:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        toast.error(`Lỗi: ${error.response.data.message || 'Có lỗi xảy ra khi thanh toán.'}`);
-      } else {
-        toast.error("Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.");
-      }
+      await Promise.all(updatePromises);
+
+      toast.success("Đã yêu gửi cầu thanh toán tiền mặt đến nhân viên");
+      setTimeout(() => {
+        onPaymentSuccess();
+      }, 2000);
+    } else {
+      toast.error("Phương thức thanh toán này chưa được hỗ trợ.");
     }
-  };
+  } catch (error) {
+    console.error('Lỗi khi xử lý thanh toán:', error);
+    toast.error("Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.");
+  }
+};
 
-  return (
-    <div className="payment-modal">
-      <div className="payment-container">
-        <div className="payment-title">
-          <h4>Vui lòng chọn phương thức <span style={{ color: '#6064b6' }}>thanh toán</span></h4>
-        </div>
-        <div className="mb-4">
-          <p>Tổng số tiền cần thanh toán: {totalAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</p>
-        </div>
-        <form className="payment-form">
-          <input type="radio" name="payment" id="tienmat" onChange={() => handlePaymentSelect('tienmat')} />
-          <input type="radio" name="payment" id="VNPay" onChange={() => handlePaymentSelect('VNPay')} />
-          <input type="radio" name="payment" id="MoMo" onChange={() => handlePaymentSelect('MoMo')} />
-          <div className="payment-category">
-            <label htmlFor="tienmat" className={`payment-label tienmatMethod ${selectedPayment === 'tienmat' ? 'selected' : ''}`}>
-              <div className="imgContainer tienmat">
-                <Image src="https://cdn-icons-png.freepik.com/512/5132/5132194.png" alt="cash" width={50} height={50} />
-              </div>
-              <div className="imgName">
-                <span>Tiền mặt</span>
-                <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
-              </div>
-            </label>
-            <label htmlFor="VNPay" className={`payment-label VNPayMethod ${selectedPayment === 'VNPay' ? 'selected' : ''}`}>
-              <div className="imgContainer VNPay">
-                <Image src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Icon-VNPAY-QR.png" alt="VNPay" width={50} height={50} />
-              </div>
-              <div className="imgName">
-                <span>VNPay</span>
-                <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
-              </div>
-            </label>
-            <label htmlFor="MoMo" className={`payment-label MoMoMethod ${selectedPayment === 'MoMo' ? 'selected' : ''}`}>
-              <div className="imgContainer MoMo">
-                <Image src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Square.png" alt="MoMo" width={50} height={50} />
-              </div>
-              <div className="imgName">
-                <span>MoMo</span>
-                <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
-              </div>
-            </label>
-          </div>
-        </form>
-        <div className="mt-6 flex justify-center gap-4">
-          <button className="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600" onClick={handlePaymentClick}>Thanh toán</button>
-          <button onClick={onClose} className="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">Đóng</button>
-        </div>
-        <ToastContainer />
+const createMoMoPayment = async (amount, orderId) => {
+  try {
+    const response = await axios.post('/api/create-momo-payment', {
+      amount,
+      orderId
+    });
+    
+    if (response.data.payUrl) {
+      window.location.href = response.data.payUrl;
+    } else {
+      throw new Error('Failed to create MoMo payment');
+    }
+  } catch (error) {
+    console.error('Error creating MoMo payment:', error);
+    // Xử lý lỗi ở đây
+  }
+};
+
+return (
+  <div className="payment-modal">
+    <div className="payment-container">
+      <div className="payment-title">
+        <h4>Vui lòng chọn phương thức <span style={{ color: '#6064b6' }}>thanh toán</span></h4>
       </div>
+      <form className="payment-form">
+        <input type="radio" name="payment" id="tienmat" onChange={() => handlePaymentSelect('tienmat')} />
+        <input type="radio" name="payment" id="VNPay" onChange={() => handlePaymentSelect('VNPay')} />
+        <div className="payment-category">
+          <label htmlFor="tienmat" className={`payment-label tienmatMethod ${selectedPayment === 'tienmat' ? 'selected' : ''}`}>
+            <div className="imgContainer tienmat">
+              <Image src="https://cdn-icons-png.freepik.com/512/5132/5132194.png" alt="cash" width={50} height={50} />
+            </div>
+            <div className="imgName">
+              <span>Tiền mặt</span>
+              <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
+            </div>
+          </label>
+          <label htmlFor="VNPay" className={`payment-label VNPayMethod ${selectedPayment === 'VNPay' ? 'selected' : ''}`}>
+            <div className="imgContainer VNPay">
+              <Image src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Icon-VNPAY-QR.png" alt="VNPay" width={50} height={50} />
+            </div>
+            <div className="imgName">
+              <span>VNPay</span>
+              <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
+            </div>
+          </label>
+        </div>
+      </form>
+      <div className="mt-6 flex justify-center gap-4">
+        <button className="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600" onClick={handlePaymentClick}>Thanh toán</button>
+        <button onClick={onClose} className="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">Đóng</button>
+      </div>
+      <ToastContainer />
     </div>
-  );
+  </div>
+);
 };
 
 export default Payment;

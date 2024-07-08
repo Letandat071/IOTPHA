@@ -1,15 +1,17 @@
+// components/payment.js
 import axios from 'axios';
 import { useState } from 'react';
-import { useRouter } from 'next/router';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe('pk_test_51PZjaJLJSo3FBshINk2IfiUafkAa04Fn9Tjs33YaPYUu8uJ1U2WVTOiCfuHLmyi6G9R5ZjAjeJH9Hrfg54xz4cD000kZ9p8LgS');
 
 const Payment = ({ order, onClose, onPaymentSuccess }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const router = useRouter();
 
   const handlePaymentSelect = (method) => {
     setSelectedPayment(method);
@@ -22,26 +24,30 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
     }
 
     try {
-      if (selectedPayment === 'VNPay') {
-        const amount = order.amount;
-        const orderId = order._id;
+      if (selectedPayment === 'Stripe') {
+        const items = order.products.map(product => ({
+          name: product.title,
+          amount: product.price * 100, // Đơn vị: cents
+          quantity: product.foodQuantity,
+        }));
 
-        console.log('Amount:', amount, 'OrderId:', orderId);
+        const response = await axios.post('/api/create-stripe-session', { items });
+        const { id } = response.data;
+        const stripe = await stripePromise;
 
-        const response = await axios.post('/api/create_payment', { amount, orderId });
-        const { paymentUrl } = response.data;
+        const { error } = await stripe.redirectToCheckout({ sessionId: id });
 
-        console.log('Redirecting to VNPay with URL:', paymentUrl);
-        window.location.href = paymentUrl;
+        if (error) {
+          console.error('Stripe checkout error:', error);
+          toast.error("Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.");
+        }
       } else {
-        // Update the payment status of the order
+        // Các phương thức thanh toán khác
         await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
           paymentstatus: 'Đang chờ xác nhận',
         });
 
-        // Hiển thị thông báo thanh toán thành công
         toast.success("Đang chờ xác nhận!");
-        // Sau 2 giây, gọi hàm onPaymentSuccess
         setTimeout(() => {
           location.reload();
         }, 2000); // 2 giây
@@ -62,6 +68,7 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
           <input type="radio" name="payment" id="tienmat" onChange={() => handlePaymentSelect('tienmat')} />
           <input type="radio" name="payment" id="VNPay" onChange={() => handlePaymentSelect('VNPay')} />
           <input type="radio" name="payment" id="NFC" onChange={() => handlePaymentSelect('NFC')} />
+          <input type="radio" name="payment" id="Stripe" onChange={() => handlePaymentSelect('Stripe')} />
 
           <div className="payment-category">
             <label htmlFor="tienmat" className={`payment-label tienmatMethod ${selectedPayment === 'tienmat' ? 'selected' : ''}`}>
@@ -88,6 +95,15 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
               </div>
               <div className="imgName">
                 <span>NFC</span>
+                <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
+              </div>
+            </label>
+            <label htmlFor="Stripe" className={`payment-label StripeMethod ${selectedPayment === 'Stripe' ? 'selected' : ''}`}>
+              <div className="imgContainer Stripe">
+                <Image src="https://www.cdnlogo.com/logos/s/83/stripe.svg" alt="Stripe" width={50} height={50} />
+              </div>
+              <div className="imgName">
+                <span>Stripe</span>
                 <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
               </div>
             </label>
