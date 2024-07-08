@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import { toast, ToastContainer } from 'react-toastify';
+import Swal from 'sweetalert2';
 import 'react-toastify/dist/ReactToastify.css';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -22,31 +23,24 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
       alert("Vui lòng chọn phương thức thanh toán.");
       return;
     }
-
+  
     try {
       if (selectedPayment === 'Stripe') {
         const items = order.products.map(product => ({
           name: product.title,
-          amount: product.price * 100, // Đơn vị: cents
+          amount: product.price * 1000, // Đơn vị: vnđ
           quantity: product.foodQuantity,
         }));
-
-        const response = await axios.post('/api/create-stripe-session', { items });
-        const { id } = response.data;
-        const stripe = await stripePromise;
-
-        const { error } = await stripe.redirectToCheckout({ sessionId: id });
-
-        if (error) {
-          console.error('Stripe checkout error:', error);
-          toast.error("Có lỗi xảy ra khi thanh toán. Vui lòng thử lại.");
-        }
+  
+        const response = await axios.post('/api/create-stripe-session', { items, orderId: order._id });
+        const { url } = response.data;
+        window.location.href = url;
       } else {
         // Các phương thức thanh toán khác
         await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
           paymentstatus: 'Đang chờ xác nhận',
         });
-
+  
         toast.success("Đang chờ xác nhận!");
         setTimeout(() => {
           location.reload();

@@ -54,6 +54,7 @@
     "stream-http": "^3.2.0",
     "stripe": "^16.2.0",
     "styled-components": "^5.3.11",
+    "sweetalert2": "^11.12.2",
     "url": "^0.11.3",
     "yup": "^0.32.11"
   },

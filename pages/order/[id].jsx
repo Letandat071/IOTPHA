@@ -3,13 +3,32 @@ import axios from 'axios';
 import { useState, useEffect } from 'react';
 import Payment from '../../components/payment';
 import BillPopup from '../../components/BillPopup';
+import Swal from 'sweetalert2';
 
 const Order = ({ order }) => {
   const [showPayment, setShowPayment] = useState(false);
   const [showBill, setShowBill] = useState(false);
 
   useEffect(() => {
-    console.log("Order data received in component:", order);
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+
+    if (paymentStatus === 'success') {
+      Swal.fire({
+        icon: 'success',
+        title: 'Thanh toán thành công!',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      // Cập nhật trạng thái thanh toán
+      axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
+        paymentstatus: 'Đã thanh toán',
+      }).then(() => {
+        // Reload order data or update UI as needed
+        window.location.href = window.location.origin + window.location.pathname; // Remove query params
+      });
+    }
   }, [order]);
 
   const handlePaymentClick = () => {
@@ -20,7 +39,6 @@ const Order = ({ order }) => {
     setShowPayment(false);
   };
 
-  // Tích hợp Payment 
   const handlePaymentSuccess = async () => {
     setShowPayment(false);
     setShowBill(true);
