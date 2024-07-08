@@ -1,9 +1,7 @@
-// pages/orders/[id].js
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import Payment from '../../components/payment';
 import BillPopup from '../../components/BillPopup';
-
 const Order = ({ order }) => {
   const [showPayment, setShowPayment] = useState(false);
   const [showBill, setShowBill] = useState(false);
@@ -20,20 +18,17 @@ const Order = ({ order }) => {
     setShowPayment(false);
   };
 
-  // Tích hợp Payment 
-  const handlePaymentSuccess = async () => {
-    setShowPayment(false);
-    setShowBill(true);
+//Tích hợp Payment 
+const handlePaymentSuccess = () => {
+  setShowPayment(false);
+  setShowBill(true);
+};
 
-    // Cập nhật trạng thái thanh toán
-    await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
-      paymentstatus: 'Đã thanh toán',
-    });
-  };
+const handleCloseBill = () => {
+  setShowBill(false);
+};
+//Kết thúc tích hợp
 
-  const handleCloseBill = () => {
-    setShowBill(false);
-  };
 
   const formatCurrency = (amount) => {
     const parts = parseFloat(amount).toFixed(3).split('.');
@@ -64,7 +59,7 @@ const Order = ({ order }) => {
       )}
 
       <div className="flex-grow overflow-x-auto">
-        <div className="w-full mb-4">
+        <div className="w-full mb-4"> {/* Added margin-bottom */}
           <table className="w-full text-sm text-center text-gray-500 ">
             <thead className="text-xs text-gray-400 uppercase bg-gray-700">
               <tr>
@@ -110,6 +105,7 @@ const Order = ({ order }) => {
                         {order.paymentstatus}
                       </td>
                     )}
+                    
                   </tr>
                 ))
               ) : (
@@ -122,14 +118,13 @@ const Order = ({ order }) => {
             </tbody>
           </table>
         </div>
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-4"> {/* Reduced top margin */}
           <button className="btn-primary mr-5" onClick={handlePaymentSuccess}>In Hoá Đơn</button>
-          <button className="btn-primary" 
-            onClick={handlePaymentClick} 
-            disabled={order.paymentstatus === "Đã thanh toán" || order.paymentstatus === "Đang chờ xác nhận"}
-            title={`Hoá đơn của bạn đang ${order.paymentstatus}`}
-          >
-            Thanh toán
+          <button className="btn-primary " 
+          onClick={handlePaymentClick} 
+          disabled={order.paymentstatus === "Đã thanh toán" || order.paymentstatus ==="Đang chờ xác nhận"}
+          title={`Hoá đơn của bạn đang ${order.paymentstatus}`}
+          >Thanh toán
           </button>
         </div>
       </div>

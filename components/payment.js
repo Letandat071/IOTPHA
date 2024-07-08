@@ -1,6 +1,6 @@
-// components/payment.js
 import axios from 'axios';
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
@@ -12,6 +12,7 @@ const stripePromise = loadStripe('pk_test_51PZjaJLJSo3FBshINk2IfiUafkAa04Fn9Tjs3
 
 const Payment = ({ order, onClose, onPaymentSuccess }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const router = useRouter();
 
   const handlePaymentSelect = (method) => {
     setSelectedPayment(method);
@@ -25,13 +26,10 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
 
     try {
       if (selectedPayment === 'Stripe') {
-        const items = order.products.map(product => ({
-          name: product.title,
-          amount: product.price * 100, // Đơn vị: cents
-          quantity: product.foodQuantity,
-        }));
+        const amount = order.amount;
+        const orderId = order._id;
 
-        const response = await axios.post('/api/create-stripe-session', { items });
+        const response = await axios.post('/api/create-stripe-session', { amount, orderId });
         const { id } = response.data;
         const stripe = await stripePromise;
 
