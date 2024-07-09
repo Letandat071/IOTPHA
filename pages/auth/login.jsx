@@ -20,7 +20,7 @@ const Login = () => {
     let options = { redirect: false, fullName, tableName };
     try {
       const res = await signIn("credentials", options);
-      console.log("Sign in response:", res); // Debug log
+      console.log("Sign in response:", res);
 
       if (res.error) {
         throw new Error(res.error);
@@ -34,7 +34,7 @@ const Login = () => {
 
       if (res.ok) {
         const userResponse = await axios.get('/api/auth/session');
-        console.log("User session data:", userResponse.data); // Debug log
+        console.log("User session data:", userResponse.data);
 
         if (userResponse.data.user && userResponse.data.user.id) {
           push("/profile/" + userResponse.data.user.id);
@@ -47,7 +47,7 @@ const Login = () => {
         toast.error("Login process completed, but encountered an issue");
       }
     } catch (err) {
-      console.error("Login error:", err); // Debug log
+      console.error("Login error:", err);
       toast.error(err.message || "An error occurred during login");
     }
   };
@@ -125,7 +125,14 @@ const Login = () => {
 
     try {
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['battery_service'] }],
+        filters: [
+          {
+            services: ['battery_service']
+          },
+          {
+            namePrefix: 'MyBeacon'
+          }
+        ],
         optionalServices: ['battery_service']
       });
 
@@ -136,11 +143,22 @@ const Login = () => {
 
       toast.success("BLE scanning started. Please scan the BLE device.");
 
-      device.addEventListener('advertisementreceived', (event) => {
-        if (event.device.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
-          formik.setFieldValue('tableName', '1');
-        }
+      device.addEventListener('gattserverdisconnected', () => {
+        console.log('Device disconnected');
       });
+
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService('battery_service');
+      const characteristic = await service.getCharacteristic('battery_level');
+
+      const value = await characteristic.readValue();
+      const batteryLevel = value.getUint8(0);
+      console.log(`Battery level is ${batteryLevel}%`);
+
+      // Check UUID of the device and set table name if matches
+      if (device.uuids.includes('2F234454-CF6D-4A0F-ADF2-F4911ba9FFA6')) {
+        formik.setFieldValue('tableName', '1');
+      }
     } catch (error) {
       console.log('BLE scanning failed: ', error);
       toast.error("BLE scanning failed. Please try again.");
