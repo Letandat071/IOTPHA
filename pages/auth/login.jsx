@@ -123,6 +123,33 @@ const Login = () => {
     }
   };
 
+  // Hàm bắt đầu quét BLE khi người dùng nhấn nút
+  const startBleScan = async () => {
+    if (!navigator.bluetooth) {
+      toast.error("Bluetooth is not supported on this device.");
+      return;
+    }
+
+    try {
+      await navigator.bluetooth.requestLEScan({
+        filters: [{ services: ['battery_service'] }],
+        acceptAllAdvertisements: true
+      });
+
+      toast.success("BLE scanning started. Please scan the BLE device.");
+
+      navigator.bluetooth.addEventListener('advertisementreceived', (event) => {
+        const device = event.device;
+        if (device.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
+          formik.setFieldValue('tableName', '1');
+        }
+      });
+    } catch (error) {
+      console.log('BLE scanning failed: ', error);
+      toast.error("BLE scanning failed. Please try again.");
+    }
+  };
+
   // Hàm xử lý đăng xuất người dùng
   const onLogout = async () => {
     try {
@@ -201,6 +228,13 @@ const Login = () => {
             onClick={startNfcScan}
           >
             Bật NFC Để Quét
+          </button>
+          <button
+            className="btn-primary !bg-secondary"
+            type="button"
+            onClick={startBleScan}
+          >
+            Scan BLE
           </button>
         </div>
       </form>
