@@ -1,5 +1,6 @@
+// pages/auth/login.jsx
+
 import { useFormik } from "formik";
-import Link from "next/link";
 import Input from "../../components/form/Input";
 import Title from "../../components/ui/Title";
 import { loginSchema } from "../../schema/login";
@@ -60,7 +61,7 @@ const Login = () => {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = '/js/beaconScanner.js';
-    script.async = true; // Sử dụng async hoặc defer
+    script.async = true;
     script.onload = () => {
       window.scanBeacon = formik.setFieldValue;
       window.scanBLE = formik.setFieldValue;
