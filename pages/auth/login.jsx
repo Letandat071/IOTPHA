@@ -1,4 +1,5 @@
 import { useFormik } from "formik";
+import Link from "next/link";
 import Input from "../../components/form/Input";
 import Title from "../../components/ui/Title";
 import { loginSchema } from "../../schema/login";
@@ -7,20 +8,20 @@ import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import Head from "next/head";
 
 const Login = () => {
   const { push } = useRouter();
   const { data: session } = useSession();
   const [currentUser, setCurrentUser] = useState();
   const [nfcSupported, setNfcSupported] = useState(false);
-  const [bluetoothSupported, setBluetoothSupported] = useState(false);
 
+  // Hàm xử lý khi người dùng nhấn nút đăng nhập
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
     let options = { redirect: false, fullName, tableName };
     try {
       const res = await signIn("credentials", options);
+      console.log("Sign in response:", res); // Debug log
 
       if (res.error) {
         throw new Error(res.error);
@@ -33,20 +34,27 @@ const Login = () => {
       });
 
       if (res.ok) {
+        // Fetch user data after successful login
         const userResponse = await axios.get('/api/auth/session');
+        console.log("User session data:", userResponse.data); // Debug log
+
         if (userResponse.data.user && userResponse.data.user.id) {
           push("/profile/" + userResponse.data.user.id);
         } else {
+          console.error("User ID not available in session data");
           toast.error("Login successful, but user data is incomplete");
         }
       } else {
+        console.error("Login response not OK");
         toast.error("Login process completed, but encountered an issue");
       }
     } catch (err) {
+      console.error("Login error:", err); // Debug log
       toast.error(err.message || "An error occurred during login");
     }
   };
 
+  // Cấu hình formik cho form đăng nhập
   const formik = useFormik({
     initialValues: {
       fullName: "",
@@ -56,20 +64,7 @@ const Login = () => {
     validationSchema: loginSchema,
   });
 
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = '/js/beaconScanner.js';
-    script.async = true;
-    script.onload = () => {
-      window.scanBeacon = formik.setFieldValue;
-      window.scanBLE = formik.setFieldValue;
-    };
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [formik.setFieldValue]);
-
+  // Hàm xử lý trạng thái người dùng và chuyển hướng nếu đã đăng nhập
   useEffect(() => {
     const getUser = async () => {
       try {
@@ -87,6 +82,7 @@ const Login = () => {
     getUser();
   }, [session, push, currentUser]);
 
+  // Kiểm tra hỗ trợ NFC và cấu hình quét NFC
   useEffect(() => {
     if ('NDEFReader' in window) {
       setNfcSupported(true);
@@ -96,15 +92,7 @@ const Login = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if ('bluetooth' in navigator && navigator.bluetooth) {
-      setBluetoothSupported(true);
-    } else {
-      setBluetoothSupported(false);
-      toast.error("Bluetooth is not supported on this device.");
-    }
-  }, []);
-
+  // Hàm bắt đầu quét NFC khi người dùng nhấn nút
   const startNfcScan = async () => {
     if (!nfcSupported) {
       toast.error("NFC is not supported on this device.");
@@ -135,20 +123,7 @@ const Login = () => {
     }
   };
 
-  const startBLEScan = async () => {
-    if (!bluetoothSupported) {
-      toast.error("Bluetooth is not supported on this device.");
-      return;
-    }
-
-    try {
-      await window.scanBLE(formik.setFieldValue);
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error("BLE scanning failed. Please try again.");
-    }
-  };
-
+  // Hàm xử lý đăng xuất người dùng
   const onLogout = async () => {
     try {
       await signOut({ redirect: false });
@@ -169,6 +144,7 @@ const Login = () => {
     }
   };
 
+  // Cấu hình các trường input cho form
   const inputs = [
     {
       id: 1,
@@ -193,9 +169,6 @@ const Login = () => {
 
   return (
     <div className="container mx-auto">
-      <Head>
-        <title>Login</title>
-      </Head>
       <form
         className="flex flex-col items-center my-20 md:w-1/2 w-full mx-auto"
         onSubmit={formik.handleSubmit}
@@ -229,19 +202,13 @@ const Login = () => {
           >
             Bật NFC Để Quét
           </button>
-          <button
-            className="btn-primary !bg-secondary"
-            type="button"
-            onClick={startBLEScan}
-          >
-            Scan BLE
-          </button>
         </div>
       </form>
     </div>
   );
 };
 
+// Hàm lấy dữ liệu của người dùng từ server và chuyển hướng nếu đã đăng nhập
 export async function getServerSideProps({ req }) {
   const session = await getSession({ req });
 
