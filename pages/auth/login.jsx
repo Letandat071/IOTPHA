@@ -8,7 +8,6 @@ import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { requestDevice } from 'web-bluetooth';
 
 const Login = () => {
   const { push } = useRouter();
@@ -125,9 +124,9 @@ const Login = () => {
     }
 
     try {
-      const device = await requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ['battery_service'],
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ['battery_service'] }],
+        optionalServices: ['battery_service']
       });
 
       if (!device) {
