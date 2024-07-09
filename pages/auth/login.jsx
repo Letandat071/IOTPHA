@@ -1,5 +1,3 @@
-// pages/auth/login.jsx
-
 import { useFormik } from "formik";
 import Input from "../../components/form/Input";
 import Title from "../../components/ui/Title";

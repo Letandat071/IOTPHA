@@ -1,35 +1,54 @@
-// public/js/beaconScanner.js
-
 async function scanBLE(setFieldValue) {
     try {
       console.log("Requesting Bluetooth Device...");
-      
+  
       const options = {
         acceptAllAdvertisements: true,
       };
   
-      const scan = await navigator.bluetooth.requestLEScan(options);
+      // Yêu cầu quyền truy cập vị trí (nếu cần thiết cho BLE)
+      if (!navigator.geolocation) {
+        console.error("Geolocation is not supported by your browser.");
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
   
-      navigator.bluetooth.addEventListener('advertisementreceived', (event) => {
-        console.log('> Advertisement received.');
-        console.log('  Device Name: ' + event.device.name);
-        console.log('  UUIDs:       ' + (event.uuids.join('\n') || 'N/A'));
+      navigator.geolocation.getCurrentPosition(async () => {
+        try {
+          const scan = await navigator.bluetooth.requestLEScan(options);
   
-        // Check for the specific UUID
-        if (event.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
-          // Assuming Major and Minor are part of the name or can be extracted somehow
-          if (event.device.name.includes('1')) { // Simplified check
-            setFieldValue('tableName', '1');
-            console.log('> TableName set to 1');
-            scan.stop(); // Stop scanning after finding the correct device
-          }
+          navigator.bluetooth.addEventListener('advertisementreceived', (event) => {
+            console.log('> Advertisement received.');
+            console.log('  Device Name: ' + event.device.name);
+            console.log('  UUIDs:       ' + (event.uuids.join('\n') || 'N/A'));
+  
+            // Kiểm tra UUID, Major, và Minor
+            const targetUUID = '2f234454-cf6d-4a0f-adf2-f4911ba9ffa6';
+            const major = 1;
+            const minor = 1;
+  
+            if (event.uuids.includes(targetUUID)) {
+              if (event.device.name.includes(`${major}-${minor}`)) { // Giả định Major-Minor có trong tên thiết bị
+                setFieldValue('tableName', `${major}`);
+                console.log(`> TableName set to ${major}`);
+                scan.stop(); // Dừng quét sau khi tìm thấy thiết bị
+              }
+            }
+          });
+  
+          console.log('> Scan started');
+        } catch (error) {
+          console.error('Error:', error);
+          alert("BLE scanning failed. Please try again.");
         }
+      }, (error) => {
+        console.error("Geolocation error:", error);
+        alert("Geolocation permission denied.");
       });
   
-      console.log('> Scan started');
     } catch (error) {
       console.error('Error:', error);
-      toast.error("BLE scanning failed. Please try again.");
+      alert("BLE scanning failed. Please try again.");
     }
   }
   
