@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-   "dev": "next dev -H 0.0.0.0 -p 3000",
-       "build": "next build",
-       "start": "next start -H 0.0.0.0 -p 3000",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint"
   },
   "dependencies": {
@@ -56,6 +56,7 @@
     "styled-components": "^5.3.11",
     "sweetalert2": "^11.12.2",
     "url": "^0.11.3",
+    "web-bluetooth": "^0.1.2",
     "yup": "^0.32.11"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { requestDevice } from 'web-bluetooth';
 
 const Login = () => {
   const { push } = useRouter();
@@ -15,7 +16,6 @@ const Login = () => {
   const [currentUser, setCurrentUser] = useState();
   const [nfcSupported, setNfcSupported] = useState(false);
 
-  // Hàm xử lý khi người dùng nhấn nút đăng nhập
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
     let options = { redirect: false, fullName, tableName };
@@ -34,7 +34,6 @@ const Login = () => {
       });
 
       if (res.ok) {
-        // Fetch user data after successful login
         const userResponse = await axios.get('/api/auth/session');
         console.log("User session data:", userResponse.data); // Debug log
 
@@ -54,7 +53,6 @@ const Login = () => {
     }
   };
 
-  // Cấu hình formik cho form đăng nhập
   const formik = useFormik({
     initialValues: {
       fullName: "",
@@ -64,7 +62,6 @@ const Login = () => {
     validationSchema: loginSchema,
   });
 
-  // Hàm xử lý trạng thái người dùng và chuyển hướng nếu đã đăng nhập
   useEffect(() => {
     const getUser = async () => {
       try {
@@ -82,7 +79,6 @@ const Login = () => {
     getUser();
   }, [session, push, currentUser]);
 
-  // Kiểm tra hỗ trợ NFC và cấu hình quét NFC
   useEffect(() => {
     if ('NDEFReader' in window) {
       setNfcSupported(true);
@@ -92,7 +88,6 @@ const Login = () => {
     }
   }, []);
 
-  // Hàm bắt đầu quét NFC khi người dùng nhấn nút
   const startNfcScan = async () => {
     if (!nfcSupported) {
       toast.error("NFC is not supported on this device.");
@@ -123,7 +118,6 @@ const Login = () => {
     }
   };
 
-  // Hàm bắt đầu quét BLE khi người dùng nhấn nút
   const startBleScan = async () => {
     if (!navigator.bluetooth) {
       toast.error("Bluetooth is not supported on this device.");
@@ -131,16 +125,20 @@ const Login = () => {
     }
 
     try {
-      await navigator.bluetooth.requestLEScan({
-        filters: [{ services: ['battery_service'] }],
-        acceptAllAdvertisements: true
+      const device = await requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['battery_service'],
       });
+
+      if (!device) {
+        toast.error("No device selected.");
+        return;
+      }
 
       toast.success("BLE scanning started. Please scan the BLE device.");
 
-      navigator.bluetooth.addEventListener('advertisementreceived', (event) => {
-        const device = event.device;
-        if (device.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
+      device.addEventListener('advertisementreceived', (event) => {
+        if (event.device.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
           formik.setFieldValue('tableName', '1');
         }
       });
@@ -150,7 +148,6 @@ const Login = () => {
     }
   };
 
-  // Hàm xử lý đăng xuất người dùng
   const onLogout = async () => {
     try {
       await signOut({ redirect: false });
@@ -171,7 +168,6 @@ const Login = () => {
     }
   };
 
-  // Cấu hình các trường input cho form
   const inputs = [
     {
       id: 1,
@@ -190,7 +186,6 @@ const Login = () => {
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
-      // disabled: true, // Thêm thuộc tính disabled vào đây
     },
   ];
 
@@ -242,7 +237,6 @@ const Login = () => {
   );
 };
 
-// Hàm lấy dữ liệu của người dùng từ server và chuyển hướng nếu đã đăng nhập
 export async function getServerSideProps({ req }) {
   const session = await getSession({ req });
 
