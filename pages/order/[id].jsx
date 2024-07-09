@@ -17,8 +17,9 @@ const Order = ({ order }) => {
       Swal.fire({
         icon: 'success',
         title: 'Thanh toán thành công!',
-        showConfirmButton: false,
-        timer: 1500,
+        confirmButtonColor: '#4CAF50', // Màu xanh lá
+        confirmButtonText: 'OK',
+        // timer: 1500,
       });
 
       // Cập nhật trạng thái thanh toán

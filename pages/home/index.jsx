@@ -7,8 +7,8 @@ import axios from "axios";
 
 const Index = ({ categoryList, productList }) => {
   // In ra dữ liệu để kiểm tra
-  console.log("categoryList: ", categoryList);
-  console.log("productList: ", productList);
+  // console.log("categoryList: ", categoryList);
+  // console.log("productList: ", productList);
 
   return (
     <React.Fragment>

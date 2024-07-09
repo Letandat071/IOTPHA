@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Title from "../ui/Title";
 import Image from "next/image";
 import AddProduct from "./AddProduct";
@@ -23,7 +23,23 @@ const Products = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAllSelected, setIsAllSelected] = useState(false);
 
-  const getProducts = async () => {
+  // const getProducts = async () => {
+  //   try {
+  //     const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/products`);
+  //     setProducts(res.data);
+  //     setFilteredProducts(res.data);
+  //     const uniqueCategories = [...new Set(res.data.map(product => product.category))];
+  //     setCategories(uniqueCategories);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   getProducts();
+  // }, []);
+
+  const getProducts = useCallback(async () => {
     try {
       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/products`);
       setProducts(res.data);
@@ -32,12 +48,21 @@ const Products = () => {
       setCategories(uniqueCategories);
     } catch (error) {
       console.log(error);
+      toast.error("Không thể tải dữ liệu sản phẩm", {
+        position: "top-left",
+        theme: "colored",
+      });
     }
-  };
+  }, []);
 
   useEffect(() => {
     getProducts();
-  }, []);
+    const intervalId = setInterval(() => {
+      getProducts();
+    }, 50000); 
+
+    return () => clearInterval(intervalId); // Cleanup on component unmount
+  }, [getProducts]);
 
   useEffect(() => {
     filterProducts();
@@ -105,6 +130,7 @@ const Products = () => {
     }
   };
 
+
   const handleQuantityChange = async (productId, change) => {
     const product = products.find(p => p._id === productId);
     if (!product) return;
@@ -118,7 +144,10 @@ const Products = () => {
         { ...product, soLuong: newQuantity }
       );
       if (res.status === 200) {
-        setProducts(products.map(p =>
+        setProducts(prevProducts => prevProducts.map(p =>
+          p._id === productId ? { ...p, soLuong: newQuantity } : p
+        ));
+        setFilteredProducts(prevFiltered => prevFiltered.map(p =>
           p._id === productId ? { ...p, soLuong: newQuantity } : p
         ));
         toast.success("Cập nhật số lượng thành công", {
@@ -144,7 +173,7 @@ const Products = () => {
     const product = products.find(p => p._id === productId);
     if (!product) return;
 
-    const quantity = newQuantity === '' ? 0 : Math.max(0, newQuantity);
+    const quantity = newQuantity === '' ? 0 : Math.max(0, parseInt(newQuantity, 10));
 
     try {
       const res = await axios.put(
@@ -152,7 +181,10 @@ const Products = () => {
         { ...product, soLuong: quantity }
       );
       if (res.status === 200) {
-        setProducts(products.map(p =>
+        setProducts(prevProducts => prevProducts.map(p =>
+          p._id === productId ? { ...p, soLuong: quantity } : p
+        ));
+        setFilteredProducts(prevFiltered => prevFiltered.map(p =>
           p._id === productId ? { ...p, soLuong: quantity } : p
         ));
         toast.success("Cập nhật số lượng thành công", {

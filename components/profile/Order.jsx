@@ -56,8 +56,22 @@ const Order = () => {
           
           // Remove the session_id from the URL
           router.replace(router.pathname, undefined, { shallow: true });
+
+          // Show success popup only once
+          Swal.fire({
+            icon: 'success',
+            title: 'Thanh toán thành công!',
+            text: 'Tất cả đơn hàng đã được thanh toán thành công.',
+            confirmButtonColor: '#4CAF50', // Màu xanh lá
+            confirmButtonText: 'OK'
+          });
         } catch (error) {
           console.error('Lỗi khi cập nhật trạng thái đơn hàng:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Có lỗi xảy ra',
+            text: 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại sau.',
+          });
         }
       }
     };
@@ -66,17 +80,6 @@ const Order = () => {
       handlePaymentSuccess();
     }
   }, [router.query.session_id, getOrders, router]);
-
-  useEffect(() => {
-    if (paymentSuccess) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Thanh toán thành công!',
-        text: 'Đơn hàng của bạn đã được thanh toán thành công.',
-      });
-      setPaymentSuccess(false);
-    }
-  }, [paymentSuccess]);
 
   const handleSubmitPayment = () => {
     setShowPayment(true);
@@ -107,6 +110,7 @@ const Order = () => {
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return `${formattedInteger}.${decimalPart} VNĐ`;
   };
+
 
   return (
     <div className="lg:p-8 flex-1 lg:mt-0 mt-5">
@@ -165,7 +169,7 @@ const Order = () => {
         <div>
           <h2 className="text-xl font-semibold mb-2">Thanh toán</h2>
           <button
-            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg"
+            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out"
             onClick={handleSubmitPayment}
           >
             Thanh Toán
@@ -173,7 +177,7 @@ const Order = () => {
         </div>
         <div>
           <button
-            className="mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg"
+            className="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out"
             onClick={handlePrintBill}
           >
             In bill
