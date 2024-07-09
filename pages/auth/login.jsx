@@ -60,6 +60,7 @@ const Login = () => {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = '/js/beaconScanner.js';
+    script.async = true; // Sử dụng async hoặc defer
     script.onload = () => {
       window.scanBeacon = formik.setFieldValue;
       window.scanBLE = formik.setFieldValue;
@@ -194,7 +195,7 @@ const Login = () => {
   return (
     <div className="container mx-auto">
       <Head>
-        <script src="/js/beaconScanner.js"></script>
+        <title>Login</title>
       </Head>
       <form
         className="flex flex-col items-center my-20 md:w-1/2 w-full mx-auto"
