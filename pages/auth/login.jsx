@@ -7,7 +7,6 @@ import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { requestBluetoothPermissions } from "../../util/requestPermissions";
 
 const Login = () => {
   const { push } = useRouter();
@@ -117,17 +116,18 @@ const Login = () => {
     }
   };
 
-  const startBeaconScan = async () => {
+  const startBleScan = async () => {
     try {
-      await requestBluetoothPermissions();
-      const res = await axios.get('/api/scan-beacon');
-      if (res.data && res.data.tableName) {
-        formik.setFieldValue('tableName', res.data.tableName);
-        toast.success("Beacon detected and TableName auto-filled.");
+      const response = await axios.post('/api/scan-ble');
+      if (response.data.tableName) {
+        formik.setFieldValue('tableName', response.data.tableName);
+        toast.success("Beacon found and TableName set.");
+      } else {
+        toast.error("Beacon not found.");
       }
     } catch (error) {
-      console.error("Beacon scan error:", error);
-      toast.error(error.message || "Beacon scan failed. Please try again.");
+      console.error("BLE scanning error:", error);
+      toast.error("BLE scanning failed. Please try again.");
     }
   };
 
@@ -184,7 +184,7 @@ const Login = () => {
           <button
             className="btn-primary !bg-secondary"
             type="button"
-            onClick={startBeaconScan}
+            onClick={startBleScan}
           >
             Scan BLE
           </button>
