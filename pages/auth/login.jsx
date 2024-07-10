@@ -13,6 +13,8 @@ const Login = () => {
   const { data: session } = useSession();
   const [currentUser, setCurrentUser] = useState();
   const [nfcSupported, setNfcSupported] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+
 
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
@@ -116,21 +118,74 @@ const Login = () => {
     }
   };
 
+
   const startBleScan = async () => {
+    if (!navigator.bluetooth) {
+      toast.error("Thiết bị hoặc trình duyệt của bạn không hỗ trợ Bluetooth.");
+      return;
+    }
+
     try {
-      const response = await axios.post('/api/scan-ble');
-      if (response.data.tableName) {
-        formik.setFieldValue('tableName', response.data.tableName);
-        toast.success("Beacon found and TableName set.");
-      } else {
-        toast.error("Beacon not found.");
-      }
+      setIsScanning(true);
+      toast.info("Đang quét iBeacon...");
+
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: ['fe9a'] }  // iBeacon service UUID
+        ],
+        optionalServices: ['battery_service']  // Thêm bất kỳ dịch vụ nào bạn muốn truy cập
+      });
+
+      console.log('Thiết bị được tìm thấy:', device.name);
+
+      device.addEventListener('advertisementreceived', (event) => {
+        console.log('Nhận được quảng cáo:', event);
+
+        const manufacturerData = event.manufacturerData;
+        for (const [key, value] of manufacturerData) {
+          if (key === 0x004C) { // Apple's company identifier
+            const data = new Uint8Array(value.buffer);
+            if (data[0] === 0x02 && data[1] === 0x15) { // iBeacon identifier
+              const uuid = parseUUID(data.slice(2, 18));
+              const major = (data[18] << 8) | data[19];
+              const minor = (data[20] << 8) | data[21];
+
+              console.log('iBeacon found:', { uuid, major, minor });
+
+              if (uuid === '2f234454-cf6d-4a0f-adf2-f4911ba9ffa6' && major === 1 && minor === 1) {
+                formik.setFieldValue('tableName', '1');
+                toast.success("Số bàn đã được đặt thành 1 dựa trên dữ liệu iBeacon.");
+                setIsScanning(false);
+              }
+            }
+          }
+        }
+      });
+
+      await device.watchAdvertisements();
+
+      // Dừng quét sau 10 giây
+      setTimeout(() => {
+        if (isScanning) {
+          device.unwatchAdvertisements();
+          setIsScanning(false);
+          toast.warn("Không tìm thấy iBeacon phù hợp. Vui lòng thử lại.");
+        }
+      }, 10000);
+
     } catch (error) {
-      console.error("BLE scanning error:", error);
-      toast.error("BLE scanning failed. Please try again.");
+      console.error('Quét Bluetooth thất bại: ', error);
+      toast.error("Quét Bluetooth thất bại. Vui lòng thử lại.");
+      setIsScanning(false);
     }
   };
 
+  const parseUUID = (data) => {
+    return Array.from(data)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  };
+ 
   const inputs = [
     {
       id: 1,
@@ -154,44 +209,45 @@ const Login = () => {
 
   return (
     <div className="container mx-auto">
-      <form
-        className="flex flex-col items-center my-20 md:w-1/2 w-full mx-auto"
-        onSubmit={formik.handleSubmit}
-      >
-        <Title addClass="text-[40px] mb-6">Login</Title>
-        <div className="flex flex-col gap-y-3 w-full">
-          {inputs.map((input) => (
-            <Input
-              key={input.id}
-              {...input}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-          ))}
-        </div>
-        <div className="flex flex-col w-full gap-y-3 mt-6">
-          <button className="btn-primary" type="submit">
-            LOGIN
-          </button>
-          
-          <button
-            className="btn-primary !bg-secondary"
-            type="button"
-            onClick={startNfcScan}
-          >
-            Bật NFC Để Quét
-          </button>
-          <button
+    <form
+      className="flex flex-col items-center my-20 md:w-1/2 w-full mx-auto"
+      onSubmit={formik.handleSubmit}
+    >
+      <Title addClass="text-[40px] mb-6">Login</Title>
+      <div className="flex flex-col gap-y-3 w-full">
+        {inputs.map((input) => (
+          <Input
+            key={input.id}
+            {...input}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+          />
+        ))}
+      </div>
+      <div className="flex flex-col w-full gap-y-3 mt-6">
+        <button className="btn-primary" type="submit">
+          LOGIN
+        </button>
+        
+        <button
+          className="btn-primary !bg-secondary"
+          type="button"
+          onClick={startNfcScan}
+        >
+          Bật NFC Để Quét
+        </button>
+        <button
             className="btn-primary !bg-secondary"
             type="button"
             onClick={startBleScan}
+            disabled={isScanning}
           >
-            Scan BLE
+            {isScanning ? "Đang quét..." : "Quét iBeacon"}
           </button>
-        </div>
-      </form>
-    </div>
-  );
+      </div>
+    </form>
+  </div>
+);
 };
 
 export async function getServerSideProps({ req }) {
