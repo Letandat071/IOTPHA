@@ -119,9 +119,58 @@ const Login = () => {
   };
 
 
+  const checkBluetoothPermission = async () => {
+    if (navigator.permissions) {
+      try {
+        const result = await navigator.permissions.query({ name: 'bluetooth' });
+        if (result.state === 'granted') {
+          return true;
+        } else if (result.state === 'prompt') {
+          toast.info("Vui lòng cấp quyền Bluetooth khi được yêu cầu.");
+          return true;
+        } else {
+          toast.error("Quyền Bluetooth bị từ chối. Vui lòng cấp quyền trong cài đặt trình duyệt.");
+          return false;
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra quyền Bluetooth:', error);
+        return false;
+      }
+    }
+    return true; // Nếu API permissions không được hỗ trợ, giả định là có quyền
+  };
+
+  const checkLocationPermission = async () => {
+    if (navigator.permissions) {
+      try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        if (result.state === 'granted') {
+          return true;
+        } else if (result.state === 'prompt') {
+          toast.info("Vui lòng cấp quyền truy cập vị trí khi được yêu cầu.");
+          return true;
+        } else {
+          toast.error("Quyền truy cập vị trí bị từ chối. Vui lòng cấp quyền trong cài đặt trình duyệt.");
+          return false;
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra quyền vị trí:', error);
+        return false;
+      }
+    }
+    return true; // Nếu API permissions không được hỗ trợ, giả định là có quyền
+  };
+
   const startBleScan = async () => {
     if (!navigator.bluetooth) {
       toast.error("Thiết bị hoặc trình duyệt của bạn không hỗ trợ Bluetooth.");
+      return;
+    }
+
+    const hasBluetoothPermission = await checkBluetoothPermission();
+    const hasLocationPermission = await checkLocationPermission();
+
+    if (!hasBluetoothPermission || !hasLocationPermission) {
       return;
     }
 
@@ -155,6 +204,7 @@ const Login = () => {
               if (uuid === '2f234454-cf6d-4a0f-adf2-f4911ba9ffa6' && major === 1 && minor === 1) {
                 formik.setFieldValue('tableName', '1');
                 toast.success("Số bàn đã được đặt thành 1 dựa trên dữ liệu iBeacon.");
+                device.unwatchAdvertisements();
                 setIsScanning(false);
               }
             }
@@ -185,6 +235,7 @@ const Login = () => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   };
+
  
   const inputs = [
     {
