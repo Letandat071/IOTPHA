@@ -7,7 +7,6 @@ import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import EddystoneBeaconScanner from 'eddystone-beacon-scanner';
 
 const Login = () => {
   const { push } = useRouter();
@@ -118,6 +117,40 @@ const Login = () => {
     }
   };
 
+  const parseEddystoneBeacon = (advertisement) => {
+    const EDDYSTONE_UUID = '0000feaa-0000-1000-8000-00805f9b34fb';
+    const eddystoneServiceData = advertisement.serviceData.find(
+      (data) => data.uuid === EDDYSTONE_UUID
+    );
+
+    if (!eddystoneServiceData) {
+      return null;
+    }
+
+    const eddystoneData = new DataView(eddystoneServiceData.data.buffer);
+    const frameType = eddystoneData.getUint8(0);
+
+    if (frameType !== 0x00) {
+      return null;
+    }
+
+    const namespaceId = [];
+    const instanceId = [];
+
+    for (let i = 2; i < 12; i++) {
+      namespaceId.push(('00' + eddystoneData.getUint8(i).toString(16)).slice(-2));
+    }
+
+    for (let i = 12; i < 18; i++) {
+      instanceId.push(('00' + eddystoneData.getUint8(i).toString(16)).slice(-2));
+    }
+
+    return {
+      namespace: namespaceId.join(''),
+      instance: instanceId.join(''),
+    };
+  };
+
   const startBleScan = async () => {
     if (!navigator.bluetooth) {
       toast.error("Bluetooth is not supported on this device.");
@@ -132,19 +165,22 @@ const Login = () => {
         optionalServices: ['battery_service'],
       });
 
-      const onDiscover = (beacon) => {
-        if (beacon.namespace === '0102030405060708090a' && beacon.instance === '000000000001') {
+      device.addEventListener('advertisementreceived', (event) => {
+        const eddystoneBeacon = parseEddystoneBeacon(event);
+
+        if (
+          eddystoneBeacon &&
+          eddystoneBeacon.namespace === '0102030405060708090a' &&
+          eddystoneBeacon.instance === '000000000001'
+        ) {
           formik.setFieldValue('tableName', '1');
-          EddystoneBeaconScanner.stopScanning();
+          device.gatt.disconnect();
           setIsScanning(false);
           toast.success("Eddystone beacon found and TableName set to 1");
         }
-      };
+      });
 
-      EddystoneBeaconScanner.on('found', onDiscover);
-      EddystoneBeaconScanner.on('updated', onDiscover);
-      EddystoneBeaconScanner.startScanning();
-
+      await device.watchAdvertisements();
     } catch (error) {
       console.error('BLE scanning failed: ', error);
       toast.error("BLE scanning failed. Please try again.");
