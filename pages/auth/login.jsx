@@ -1,13 +1,13 @@
 import { useFormik } from "formik";
-import Link from "next/link";
 import Input from "../../components/form/Input";
 import Title from "../../components/ui/Title";
 import { loginSchema } from "../../schema/login";
-import { getSession, signIn, signOut, useSession } from "next-auth/react";
+import { getSession, signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { requestBluetoothPermissions } from "../../util/requestPermissions";
 
 const Login = () => {
   const { push } = useRouter();
@@ -117,63 +117,17 @@ const Login = () => {
     }
   };
 
-  const startBleScan = async () => {
-    if (!navigator.bluetooth) {
-      toast.error("Bluetooth is not supported on this device.");
-      return;
-    }
-
+  const startBeaconScan = async () => {
     try {
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['battery_service'] }]
-      });
-
-      if (!device) {
-        toast.error("No device selected.");
-        return;
-      }
-
-      toast.success("BLE scanning started. Please scan the BLE device.");
-
-      device.addEventListener('gattserverdisconnected', () => {
-        console.log('Device disconnected');
-      });
-
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService('battery_service');
-      const characteristic = await service.getCharacteristic('battery_level');
-
-      const value = await characteristic.readValue();
-      const batteryLevel = value.getUint8(0);
-      console.log(`Battery level is ${batteryLevel}%`);
-
-      // Check UUID of the device and set table name if matches
-      if (device.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
-        formik.setFieldValue('tableName', '1');
+      await requestBluetoothPermissions();
+      const res = await axios.get('/api/scan-beacon');
+      if (res.data && res.data.tableName) {
+        formik.setFieldValue('tableName', res.data.tableName);
+        toast.success("Beacon detected and TableName auto-filled.");
       }
     } catch (error) {
-      console.log('BLE scanning failed: ', error);
-      toast.error("BLE scanning failed. Please try again.");
-    }
-  };
-
-  const onLogout = async () => {
-    try {
-      await signOut({ redirect: false });
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tableName: formik.values.tableName }),
-      });
-      toast.success("Logout successfully", {
-        position: "bottom-left",
-        theme: "colored",
-      });
-      push("/auth/login");
-    } catch (err) {
-      toast.error(err.message);
+      console.error("Beacon scan error:", error);
+      toast.error(error.message || "Beacon scan failed. Please try again.");
     }
   };
 
@@ -219,13 +173,7 @@ const Login = () => {
           <button className="btn-primary" type="submit">
             LOGIN
           </button>
-          <button
-            className="btn-primary !bg-secondary"
-            type="button"
-            onClick={onLogout}
-          >
-            LOGOUT
-          </button>
+          
           <button
             className="btn-primary !bg-secondary"
             type="button"
@@ -236,7 +184,7 @@ const Login = () => {
           <button
             className="btn-primary !bg-secondary"
             type="button"
-            onClick={startBleScan}
+            onClick={startBeaconScan}
           >
             Scan BLE
           </button>
