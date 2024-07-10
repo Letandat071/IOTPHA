@@ -122,61 +122,40 @@ const Login = () => {
       toast.error("Bluetooth is not supported on this device.");
       return;
     }
-  
+
     try {
       const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          {
-            services: ['heart_rate'],
-          },
-          {
-            namePrefix: 'SonyL', // Thay đổi nếu tên Beacon của bạn khác
-          },
-        ],
+        filters: [{ services: ['battery_service'] }]
       });
-  
+
       if (!device) {
         toast.error("No device selected.");
         return;
       }
-  
+
       toast.success("BLE scanning started. Please scan the BLE device.");
-  
+
+      device.addEventListener('gattserverdisconnected', () => {
+        console.log('Device disconnected');
+      });
+
       const server = await device.gatt.connect();
-      const service = await server.getPrimaryService('generic_access'); // Thay đổi dịch vụ tùy theo Beacon của bạn
-      const characteristic = await service.getCharacteristic('device_name'); // Thay đổi characteristic tùy theo Beacon của bạn
-  
-      characteristic.addEventListener('characteristicvaluechanged', handleCharacteristicValueChanged);
-      await characteristic.startNotifications();
-  
-      function handleCharacteristicValueChanged(event) {
-        const value = event.target.value;
-        const textDecoder = new TextDecoder();
-        const beaconData = textDecoder.decode(value);
-  
-        const uuidMatch = beaconData.match(/UUID=([0-9A-Fa-f\-]+)/);
-        const majorMatch = beaconData.match(/Major=([0-9]+)/);
-        const minorMatch = beaconData.match(/Minor=([0-9]+)/);
-  
-        if (uuidMatch && majorMatch && minorMatch) {
-          const uuid = uuidMatch[1];
-          const major = majorMatch[1];
-          const minor = minorMatch[1];
-  
-          console.log(`UUID: ${uuid}, Major: ${major}, Minor: ${minor}`);
-  
-          if (uuid.toLowerCase() === '2f234454-cf6d-4a0f-adf2-f4911ba9ffa6' && major === '1' && minor === '1') {
-            formik.setFieldValue('tableName', '1');
-            toast.success("Beacon detected with UUID 2F234454-CF6D-4A0F-ADF2-F4911ba9FFA6");
-          }
-        }
+      const service = await server.getPrimaryService('battery_service');
+      const characteristic = await service.getCharacteristic('battery_level');
+
+      const value = await characteristic.readValue();
+      const batteryLevel = value.getUint8(0);
+      console.log(`Battery level is ${batteryLevel}%`);
+
+      // Check UUID of the device and set table name if matches
+      if (device.uuids.includes('2f234454-cf6d-4a0f-adf2-f4911ba9ffa6')) {
+        formik.setFieldValue('tableName', '1');
       }
     } catch (error) {
       console.log('BLE scanning failed: ', error);
       toast.error("BLE scanning failed. Please try again.");
     }
   };
-  
 
   const onLogout = async () => {
     try {
