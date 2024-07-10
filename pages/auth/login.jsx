@@ -152,41 +152,45 @@ const Login = () => {
   };
 
   const startBleScan = async () => {
-    if (!navigator.bluetooth) {
-      toast.error("Bluetooth is not supported on this device.");
+    if (!navigator.bluetooth || !navigator.bluetooth.requestLEScan) {
+      toast.error("Bluetooth Low Energy is not supported on this device.");
       return;
     }
-
+  
     setIsScanning(true);
-
+  
     try {
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ['battery_service'],
-      });
-
-      device.addEventListener('advertisementreceived', (event) => {
+      const options = {
+        acceptAllAdvertisements: true,
+        keepRepeatedDevices: false,
+      };
+  
+      const scan = await navigator.bluetooth.requestLEScan(options);
+  
+      navigator.bluetooth.addEventListener('advertisementreceived', (event) => {
         const eddystoneBeacon = parseEddystoneBeacon(event);
-
+  
         if (
           eddystoneBeacon &&
           eddystoneBeacon.namespace === '0102030405060708090a' &&
           eddystoneBeacon.instance === '000000000001'
         ) {
           formik.setFieldValue('tableName', '1');
-          device.gatt.disconnect();
           setIsScanning(false);
+          navigator.bluetooth.stopLEScan(scan);
           toast.success("Eddystone beacon found and TableName set to 1");
         }
       });
-
-      await device.watchAdvertisements();
+  
+      toast.success("BLE scanning started. Please wait...");
+  
     } catch (error) {
       console.error('BLE scanning failed: ', error);
       toast.error("BLE scanning failed. Please try again.");
       setIsScanning(false);
     }
   };
+  
 
   const inputs = [
     {
