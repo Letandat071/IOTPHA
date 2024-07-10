@@ -15,7 +15,6 @@ const Login = () => {
   const [nfcSupported, setNfcSupported] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
-
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
     let options = { redirect: false, fullName, tableName };
@@ -117,126 +116,67 @@ const Login = () => {
       toast.error("NFC scanning failed. Please try again.");
     }
   };
-
-
-  const checkBluetoothPermission = async () => {
-    if (navigator.permissions) {
-      try {
-        const result = await navigator.permissions.query({ name: 'bluetooth' });
-        if (result.state === 'granted') {
-          return true;
-        } else if (result.state === 'prompt') {
-          toast.info("Vui lòng cấp quyền Bluetooth khi được yêu cầu.");
-          return true;
-        } else {
-          toast.error("Quyền Bluetooth bị từ chối. Vui lòng cấp quyền trong cài đặt trình duyệt.");
-          return false;
-        }
-      } catch (error) {
-        console.error('Lỗi khi kiểm tra quyền Bluetooth:', error);
-        return false;
-      }
-    }
-    return true; // Nếu API permissions không được hỗ trợ, giả định là có quyền
+  const options = {
+    filters: [{ services: ['00001234-0000-1000-8000-00805f9b34fb'] }],
+    optionalServices: ['device_information']
   };
-
-  const checkLocationPermission = async () => {
-    if (navigator.permissions) {
-      try {
-        const result = await navigator.permissions.query({ name: 'geolocation' });
-        if (result.state === 'granted') {
-          return true;
-        } else if (result.state === 'prompt') {
-          toast.info("Vui lòng cấp quyền truy cập vị trí khi được yêu cầu.");
-          return true;
-        } else {
-          toast.error("Quyền truy cập vị trí bị từ chối. Vui lòng cấp quyền trong cài đặt trình duyệt.");
-          return false;
-        }
-      } catch (error) {
-        console.error('Lỗi khi kiểm tra quyền vị trí:', error);
-        return false;
-      }
-    }
-    return true; // Nếu API permissions không được hỗ trợ, giả định là có quyền
-  };
+  
 
   const startBleScan = async () => {
     if (!navigator.bluetooth) {
       toast.error("Thiết bị hoặc trình duyệt của bạn không hỗ trợ Bluetooth.");
       return;
     }
-
-    const hasBluetoothPermission = await checkBluetoothPermission();
-    const hasLocationPermission = await checkLocationPermission();
-
-    if (!hasBluetoothPermission || !hasLocationPermission) {
-      return;
-    }
-
+  
     try {
       setIsScanning(true);
-      toast.info("Đang quét iBeacon...");
-
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['fe9a'] }  // iBeacon service UUID
-        ],
-        optionalServices: ['battery_service']  // Thêm bất kỳ dịch vụ nào bạn muốn truy cập
-      });
-
-      console.log('Thiết bị được tìm thấy:', device.name);
-
-      device.addEventListener('advertisementreceived', (event) => {
-        console.log('Nhận được quảng cáo:', event);
-
-        const manufacturerData = event.manufacturerData;
-        for (const [key, value] of manufacturerData) {
-          if (key === 0x004C) { // Apple's company identifier
-            const data = new Uint8Array(value.buffer);
-            if (data[0] === 0x02 && data[1] === 0x15) { // iBeacon identifier
-              const uuid = parseUUID(data.slice(2, 18));
-              const major = (data[18] << 8) | data[19];
-              const minor = (data[20] << 8) | data[21];
-
-              console.log('iBeacon found:', { uuid, major, minor });
-
-              if (uuid === '2f234454-cf6d-4a0f-adf2-f4911ba9ffa6' && major === 1 && minor === 1) {
-                formik.setFieldValue('tableName', '1');
-                toast.success("Số bàn đã được đặt thành 1 dựa trên dữ liệu iBeacon.");
-                device.unwatchAdvertisements();
-                setIsScanning(false);
-              }
-            }
-          }
-        }
-      });
-
-      await device.watchAdvertisements();
-
-      // Dừng quét sau 10 giây
-      setTimeout(() => {
-        if (isScanning) {
-          device.unwatchAdvertisements();
-          setIsScanning(false);
-          toast.warn("Không tìm thấy iBeacon phù hợp. Vui lòng thử lại.");
-        }
-      }, 10000);
-
+      toast.info("Đang quét các thiết bị BLE...");
+  
+      const options = {
+        filters: [{ services: ['battery_service'] }],
+        optionalServices: ['device_information']
+      };
+  
+      const device = await navigator.bluetooth.requestDevice(options);
+  
+      device.addEventListener('gattserverdisconnected', onDisconnected);
+      const server = await device.gatt.connect();
+      console.log('Connected to GATT server');
+  
+      // Thêm mã xử lý ở đây sau khi kết nối thành công
+      const service = await server.getPrimaryService('battery_service');
+      const characteristic = await service.getCharacteristic('battery_level');
+      const value = await characteristic.readValue();
+      const batteryLevel = value.getUint8(0);
+      console.log(`Battery level: ${batteryLevel}%`);
+  
+      // Dừng quét và cập nhật trạng thái
+      setIsScanning(false);
+      toast.success("Quét BLE thành công và kết nối với thiết bị.");
+  
     } catch (error) {
       console.error('Quét Bluetooth thất bại: ', error);
       toast.error("Quét Bluetooth thất bại. Vui lòng thử lại.");
+    } finally {
       setIsScanning(false);
     }
   };
-
+  
+  const onDisconnected = (event) => {
+    const device = event.target;
+    console.log(`Device ${device.name} is disconnected.`);
+    // Thêm mã xử lý ngắt kết nối ở đây nếu cần
+  };
+  
+  
+  
+  // Hàm phụ trợ để phân tích dữ liệu beacon
   const parseUUID = (data) => {
-    return Array.from(data)
+    return Array.from(data.slice(4, 20))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   };
-
- 
+  
   const inputs = [
     {
       id: 1,
