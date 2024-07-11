@@ -13,6 +13,8 @@ const Login = () => {
   const { data: session } = useSession();
   const [currentUser, setCurrentUser] = useState();
   const [nfcSupported, setNfcSupported] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [connectedTable, setConnectedTable] = useState(null);
 
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
@@ -117,17 +119,45 @@ const Login = () => {
   };
 
   const startBleScan = async () => {
+    if (!navigator.bluetooth) {
+      toast.error("Bluetooth is not supported on this device.");
+      return;
+    }
+
+    setIsScanning(true);
+
     try {
-      const response = await axios.post('/api/scan-ble');
-      if (response.data.tableName) {
-        formik.setFieldValue('tableName', response.data.tableName);
-        toast.success("Beacon found and TableName set.");
-      } else {
-        toast.error("Beacon not found.");
-      }
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['battery_service', 'generic_access'],
+      });
+
+      device.addEventListener('gattserverdisconnected', () => {
+        console.log('Device disconnected');
+        setIsScanning(false);
+      });
+
+      device.addEventListener('advertisementreceived', (event) => {
+        const deviceName = event.device.name || 'Unknown Device';
+        const tableMatch = deviceName.match(/^Bàn (\d+)$/);
+        if (tableMatch) {
+          const tableNumber = tableMatch[1];
+          if (connectedTable !== tableNumber) {
+            formik.setFieldValue('tableName', tableNumber);
+            setConnectedTable(tableNumber);
+            // toast.success(`Bluetooth device '${deviceName}' found and TableName set to ${tableNumber}`);
+            setTimeout(() => setConnectedTable(null), 30000); // reset connectedTable after 30 seconds
+          }
+          device.gatt.disconnect();
+          setIsScanning(false);
+        }
+      });
+
+      await device.watchAdvertisements();
     } catch (error) {
-      console.error("BLE scanning error:", error);
+      console.error('BLE scanning failed: ', error);
       toast.error("BLE scanning failed. Please try again.");
+      setIsScanning(false);
     }
   };
 
@@ -145,7 +175,7 @@ const Login = () => {
       id: 2,
       name: "tableName",
       type: "text",
-      placeholder: formik.values.tableName ? "" : "Vui lòng quét NFC trên bàn",
+      placeholder:"Vui lòng quét NFC trên bàn",
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
@@ -185,8 +215,9 @@ const Login = () => {
             className="btn-primary !bg-secondary"
             type="button"
             onClick={startBleScan}
+            disabled={isScanning}
           >
-            Scan BLE
+            {isScanning ? "Đang quét..." : "Quét BLE"}
           </button>
         </div>
       </form>
