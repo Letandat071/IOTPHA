@@ -14,6 +14,7 @@ const Login = () => {
   const [currentUser, setCurrentUser] = useState();
   const [nfcSupported, setNfcSupported] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [connectedTable, setConnectedTable] = useState(null);
 
   const onSubmit = async (values, actions) => {
     const { fullName, tableName } = values;
@@ -117,40 +118,6 @@ const Login = () => {
     }
   };
 
-  const parseEddystoneBeacon = (advertisement) => {
-    const EDDYSTONE_UUID = '0000feaa-0000-1000-8000-00805f9b34fb';
-    const eddystoneServiceData = advertisement.serviceData.find(
-      (data) => data.uuid === EDDYSTONE_UUID
-    );
-
-    if (!eddystoneServiceData) {
-      return null;
-    }
-
-    const eddystoneData = new DataView(eddystoneServiceData.data.buffer);
-    const frameType = eddystoneData.getUint8(0);
-
-    if (frameType !== 0x00) {
-      return null;
-    }
-
-    const namespaceId = [];
-    const instanceId = [];
-
-    for (let i = 2; i < 12; i++) {
-      namespaceId.push(('00' + eddystoneData.getUint8(i).toString(16)).slice(-2));
-    }
-
-    for (let i = 12; i < 18; i++) {
-      instanceId.push(('00' + eddystoneData.getUint8(i).toString(16)).slice(-2));
-    }
-
-    return {
-      namespace: namespaceId.join(''),
-      instance: instanceId.join(''),
-    };
-  };
-
   const startBleScan = async () => {
     if (!navigator.bluetooth) {
       toast.error("Bluetooth is not supported on this device.");
@@ -162,21 +129,27 @@ const Login = () => {
     try {
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: ['battery_service'],
+        optionalServices: ['battery_service', 'generic_access'],
+      });
+
+      device.addEventListener('gattserverdisconnected', () => {
+        console.log('Device disconnected');
+        setIsScanning(false);
       });
 
       device.addEventListener('advertisementreceived', (event) => {
-        const eddystoneBeacon = parseEddystoneBeacon(event);
-
-        if (
-          eddystoneBeacon &&
-          eddystoneBeacon.namespace === '0102030405060708090a' &&
-          eddystoneBeacon.instance === '000000000001'
-        ) {
-          formik.setFieldValue('tableName', '1');
+        const deviceName = event.device.name || 'Unknown Device';
+        const tableMatch = deviceName.match(/^Bàn (\d+)$/);
+        if (tableMatch) {
+          const tableNumber = tableMatch[1];
+          if (connectedTable !== tableNumber) {
+            formik.setFieldValue('tableName', tableNumber);
+            setConnectedTable(tableNumber);
+            // toast.success(`Bluetooth device '${deviceName}' found and TableName set to ${tableNumber}`);
+            setTimeout(() => setConnectedTable(null), 30000); // reset connectedTable after 30 seconds
+          }
           device.gatt.disconnect();
           setIsScanning(false);
-          toast.success("Eddystone beacon found and TableName set to 1");
         }
       });
 
@@ -202,7 +175,7 @@ const Login = () => {
       id: 2,
       name: "tableName",
       type: "text",
-      placeholder: formik.values.tableName ? "" : "Vui lòng quét NFC trên bàn",
+      placeholder:"Vui lòng quét NFC trên bàn",
       value: formik.values.tableName,
       errorMessage: formik.errors.tableName,
       touched: formik.touched.tableName,
