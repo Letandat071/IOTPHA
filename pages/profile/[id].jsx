@@ -1,11 +1,8 @@
 import axios from "axios";
 import { signOut, useSession } from "next-auth/react";
-import Image from "next/image";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback  } from "react";
-import Account from "../../components/profile/Account";
 import Order from "../../components/profile/Order";
-import Password from "../../components/profile/Password";
 import { toast } from "react-toastify";
 
 const Profile = () => {
@@ -28,9 +25,6 @@ const Profile = () => {
       push("/auth/login");
     }
   }, [user, push]);
-
-
-
 
 
 //   useEffect(() => {

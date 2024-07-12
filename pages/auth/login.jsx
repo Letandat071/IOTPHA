@@ -38,6 +38,11 @@ const Login = () => {
         console.log("User session data:", userResponse.data);
 
         if (userResponse.data.user && userResponse.data.user.id) {
+          // Set login method to 'manual' or 'nfc' depending on how tableName was filled
+          const loginMethod = localStorage.getItem('tableNameFilledBy') || 'manual';
+          localStorage.setItem('loginMethod', loginMethod);
+          localStorage.removeItem('tableNameFilledBy'); // Clear this after use
+
           push("/profile/" + userResponse.data.user.id);
         } else {
           console.error("User ID not available in session data");
@@ -89,36 +94,37 @@ const Login = () => {
   }
 }, []);
 
-// Hàm bắt đầu quét NFC khi người dùng nhấn nút
-const startNfcScan = async () => {
-  if (!nfcSupported) {
-    toast.error("NFC is not supported on this device.");
-    return;
-  }
 
-  try {
-    const nfcReader = new window.NDEFReader();
-    await nfcReader.scan();
-    toast.success("NFC scanning started. Please scan the NFC tag.");
+  const startNfcScan = async () => {
+    if (!nfcSupported) {
+      toast.error("NFC is not supported on this device.");
+      return;
+    }
 
-    nfcReader.onreading = (event) => {
-      for (const record of event.message.records) {
-        if (record.recordType === "text") {
-          const textDecoder = new TextDecoder(record.encoding);
-          const nfcData = textDecoder.decode(record.data);
-          const tableNameMatch = nfcData.match(/TableName=(\d+)/);
+    try {
+      const nfcReader = new window.NDEFReader();
+      await nfcReader.scan();
+      toast.success("NFC scanning started. Please scan the NFC tag.");
 
-          if (tableNameMatch) {
-            formik.setFieldValue('tableName', tableNameMatch[1]);
+      nfcReader.onreading = (event) => {
+        for (const record of event.message.records) {
+          if (record.recordType === "text") {
+            const textDecoder = new TextDecoder(record.encoding);
+            const nfcData = textDecoder.decode(record.data);
+            const tableNameMatch = nfcData.match(/TableName=(\d+)/);
+
+            if (tableNameMatch) {
+              formik.setFieldValue('tableName', tableNameMatch[1]);
+              localStorage.setItem('tableNameFilledBy', 'nfc'); // Add this line
+            }
           }
         }
-      }
-    };
-  } catch (error) {
-    console.log('NFC scanning failed: ', error);
-    toast.error("NFC scanning failed. Please try again.");
-  }
-};
+      };
+    } catch (error) {
+      console.log('NFC scanning failed: ', error);
+      toast.error("NFC scanning failed. Please try again.");
+    }
+  };
 
   const startBleScan = async () => {
     if (!navigator.bluetooth) {
@@ -158,6 +164,7 @@ const startNfcScan = async () => {
               timestamp: new Date().getTime()
             }));
             localStorage.setItem('bleConnectionStatus', 'connected');
+            localStorage.setItem('loginMethod', 'ble'); // Add this line
           }
           setIsScanning(false);
         }

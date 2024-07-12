@@ -43,8 +43,10 @@ const Header = () => {
     let checkConnectionInterval;
 
     const checkBleConnection = () => {
+      const loginMethod = localStorage.getItem('loginMethod');
       const bleConnectionStatus = localStorage.getItem('bleConnectionStatus');
-      if (bleConnectionStatus === 'disconnected' && status === "authenticated") {
+      
+      if (loginMethod === 'ble' && bleConnectionStatus === 'disconnected' && status === "authenticated") {
         handleSignOut();
       }
     };
