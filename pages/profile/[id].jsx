@@ -57,16 +57,16 @@ const Profile = () => {
 
 useEffect(() => {
   const fetchUser = async () => {
-      console.log("Session: ", session);
+      // console.log("Session: ", session);
       if (session) {
           try {
               const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/${session.user.id}`);
-              console.log("User data: ", res.data);
+              // console.log("User data: ", res.data);
               setUser(res.data);
 
               // Check table status
               const tableStatusRes = await axios.get(`/api/tables/checkTableStatus?tableName=${res.data.tableName}`);
-              console.log("Table status: ", tableStatusRes.data.status);
+              // console.log("Table status: ", tableStatusRes.data.status);
               if (tableStatusRes.data.status === 'deactive') {
                   handleSignOutstatus();  // Sign out if table is deactive
               }

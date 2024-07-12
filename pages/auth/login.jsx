@@ -84,7 +84,7 @@ const Login = () => {
       setNfcSupported(true);
     } else {
       setNfcSupported(false);
-      toast.error("NFC is not supported on this device.");
+      // toast.error("NFC is not supported on this device.");
     }
   }, []);
 
@@ -123,20 +123,25 @@ const Login = () => {
       toast.error("Bluetooth is not supported on this device.");
       return;
     }
-
+  
     setIsScanning(true);
-
+  
     try {
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: ['battery_service', 'generic_access'],
       });
-
-      device.addEventListener('gattserverdisconnected', () => {
+  
+      const handleDisconnect = () => {
         console.log('Device disconnected');
+        localStorage.setItem('bleConnectionStatus', 'disconnected');
         setIsScanning(false);
-      });
-
+      };
+  
+      device.addEventListener('gattserverdisconnected', handleDisconnect);
+  
+      const server = await device.gatt.connect();
+  
       device.addEventListener('advertisementreceived', (event) => {
         const deviceName = event.device.name || 'Unknown Device';
         const tableMatch = deviceName.match(/^Bàn (\d+)$/);
@@ -145,15 +150,19 @@ const Login = () => {
           if (connectedTable !== tableNumber) {
             formik.setFieldValue('tableName', tableNumber);
             setConnectedTable(tableNumber);
-            // toast.success(`Bluetooth device '${deviceName}' found and TableName set to ${tableNumber}`);
-            setTimeout(() => setConnectedTable(null), 30000); // reset connectedTable after 30 seconds
+            localStorage.setItem('bleConnection', JSON.stringify({
+              tableNumber,
+              deviceName: deviceName,
+              timestamp: new Date().getTime()
+            }));
+            localStorage.setItem('bleConnectionStatus', 'connected');
           }
-          device.gatt.disconnect();
           setIsScanning(false);
         }
       });
-
+  
       await device.watchAdvertisements();
+  
     } catch (error) {
       console.error('BLE scanning failed: ', error);
       toast.error("BLE scanning failed. Please try again.");

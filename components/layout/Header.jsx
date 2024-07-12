@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback  } from "react";
 import { FaUserAlt, FaShoppingCart, FaSearch } from "react-icons/fa";
 import Logo from "../ui/Logo";
 import Search from "../ui/Search";
@@ -6,6 +6,9 @@ import { GiHamburgerMenu, GiCancel } from "react-icons/gi";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useSelector } from "react-redux";
+import { useEffect } from "react";
+import axios from "axios";
+import { signOut, useSession } from "next-auth/react";
 
 const Header = () => {
   const [isSearchModal, setIsSearchModal] = useState(false);
@@ -13,6 +16,58 @@ const Header = () => {
   const cart = useSelector((state) => state.cart);
 
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (session?.user) {
+      setUser(session.user);
+    }
+  }, [session]);
+
+  const handleSignOut = useCallback(async () => {
+    if (user) {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableName: user.tableName }),
+      });
+      signOut({ redirect: false });
+      router.push("/auth/login");
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    let checkConnectionInterval;
+
+    const checkBleConnection = () => {
+      const bleConnectionStatus = localStorage.getItem('bleConnectionStatus');
+      if (bleConnectionStatus === 'disconnected' && status === "authenticated") {
+        handleSignOut();
+      }
+    };
+
+    if (status === "authenticated") {
+      checkConnectionInterval = setInterval(checkBleConnection, 5000); // Check every 5 seconds
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkBleConnection();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (checkConnectionInterval) {
+        clearInterval(checkConnectionInterval);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [status, handleSignOut]);
 
   return (
     <div
