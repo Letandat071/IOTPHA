@@ -54,15 +54,13 @@ const Order = () => {
           setPaymentSuccess(true);
           await getOrders();
           
-          // Remove the session_id from the URL
           router.replace(router.pathname, undefined, { shallow: true });
 
-          // Show success popup only once
           Swal.fire({
             icon: 'success',
             title: 'Thanh toán thành công!',
             text: 'Tất cả đơn hàng đã được thanh toán thành công.',
-            confirmButtonColor: '#4CAF50', // Màu xanh lá
+            confirmButtonColor: '#4CAF50',
             confirmButtonText: 'OK'
           });
         } catch (error) {
@@ -115,13 +113,13 @@ const Order = () => {
   return (
     <div className="lg:p-8 flex-1 lg:mt-0 mt-5">
       <Title addClass="text-[40px]">Menu đã đặt hàng</Title>
-      <div className="overflow-x-auto w-full mt-5">
+      <div className="overflow-x-auto w-full mt-5 max-h-[500px]">
         <table className="w-full text-sm text-center text-gray-500 xl:min-w-[1000px]">
           <thead className="text-xs text-gray-400 uppercase bg-gray-700">
             <tr>
-              <th scope="col" className="py-3 px-6">Mã</th>
-              <th scope="col" className="py-3 px-6">Ngày</th>
-              <th scope="col" className="py-3 px-6">Thực Đơn</th>
+              <th scope="col" className="py-3 px-6 hidden lg:table-cell">Mã</th>
+              <th scope="col" className="py-3 px-6 hidden lg:table-cell">Ngày</th>
+              <th scope="col" className="py-3 px-6 ">Thực Đơn</th>
               <th scope="col" className="py-3 px-6">Trạng thái</th>
               <th scope="col" className="py-3 px-6">Thanh Toán</th>
               <th scope="col" className="py-3 px-6">Tổng tiền</th>
@@ -130,14 +128,14 @@ const Order = () => {
           <tbody>
             {orders.map((order) => (
               <tr
-                className="transition-all bg-secondary border-gray-700 hover:bg-primary cursor-pointer"
+                className="transition-all bg-secondary border-gray-700 hover:bg-primary cursor-pointer "
                 key={order._id}
                 onClick={() => router.push(`/order/${order._id}`)}
               >
-                <td className="py-4 px-6 font-medium whitespace-nowrap hover:text-white flex items-center gap-x-1 justify-center">
+                <td className="py-4  px-6 font-medium whitespace-nowrap hover:text-white items-center gap-x-1 justify-center hidden lg:table-cell">
                   <span>{order._id.substring(0, 5)}...</span>
                 </td>
-                <td className="py-4 px-6 font-medium whitespace-nowrap hover:text-white">
+                <td className="py-4 px-6 font-medium whitespace-nowrap hover:text-white hidden lg:table-cell">
                   {order.createdAt.substring(0, 10)} {order.createdAt.substring(11, 16)}
                 </td>
                 <td className="py-4 px-6 font-medium whitespace-nowrap hover:text-white">
@@ -176,6 +174,7 @@ const Order = () => {
           </button>
         </div>
         <div>
+        <h2 className="text-xl font-semibold mb-2">Hoá Đơn</h2>
           <button
             className="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out"
             onClick={handlePrintBill}
