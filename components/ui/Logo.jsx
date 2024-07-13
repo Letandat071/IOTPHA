@@ -5,7 +5,7 @@ const Logo = () => {
   return (
     <Link href="/">
       <span className="text-[2rem] font-dancing font-bold cursor-pointer">
-        PHA
+        PHA Restaurant
       </span>
     </Link>
   );

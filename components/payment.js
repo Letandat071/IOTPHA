@@ -1,11 +1,9 @@
-// components/payment.js
 import axios from 'axios';
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import { toast, ToastContainer } from 'react-toastify';
-import Swal from 'sweetalert2';
 import 'react-toastify/dist/ReactToastify.css';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -13,6 +11,7 @@ const stripePromise = loadStripe('pk_test_51PZjaJLJSo3FBshINk2IfiUafkAa04Fn9Tjs3
 
 const Payment = ({ order, onClose, onPaymentSuccess }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   const handlePaymentSelect = (method) => {
     setSelectedPayment(method);
@@ -35,6 +34,8 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
         const response = await axios.post('/api/create-stripe-session', { items, orderId: order._id });
         const { url } = response.data;
         window.location.href = url;
+      } else if (selectedPayment === 'VNPay' || selectedPayment === 'Momo') {
+        setShowPopup(true);
       } else {
         // Các phương thức thanh toán khác
         await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
@@ -52,6 +53,54 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
     }
   };
 
+  const handleConfirmPayment = async () => {
+    try {
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
+        paymentstatus: 'Đang chờ xác nhận',
+      });
+
+      toast.success("Đang chờ xác nhận!");
+      setShowPopup(false);
+      onPaymentSuccess();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error("Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.");
+    }
+  };
+
+  const handleClosePopup = () => {
+    setShowPopup(false);
+  };
+
+
+  const handleVNConfirmPayment = async () => {
+    try {
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
+        paymentstatus: 'Đang chờ xác nhận',
+      });
+      toast.success("Đang chờ xác nhận!");
+        setTimeout(() => {
+          location.reload();
+        }, 2000); // 2 giây
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error("Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.");
+    }
+  };
+
+
+  const formatCurrency = (amount) => {
+    const parts = parseFloat(amount).toFixed(3).split('.');
+    const integerPart = parts[0];
+    let decimalPart = parts[1];
+
+    decimalPart = decimalPart.padEnd(3, '0');
+
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    return `${formattedInteger}.${decimalPart} VNĐ`;
+  };
+
   return (
     <div className="payment-modal">
       <div className="payment-container">
@@ -61,7 +110,7 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
         <form className="payment-form">
           <input type="radio" name="payment" id="tienmat" onChange={() => handlePaymentSelect('tienmat')} />
           <input type="radio" name="payment" id="VNPay" onChange={() => handlePaymentSelect('VNPay')} />
-          <input type="radio" name="payment" id="NFC" onChange={() => handlePaymentSelect('NFC')} />
+          <input type="radio" name="payment" id="Momo" onChange={() => handlePaymentSelect('Momo')} />
           <input type="radio" name="payment" id="Stripe" onChange={() => handlePaymentSelect('Stripe')} />
 
           <div className="payment-category">
@@ -83,12 +132,12 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
                 <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
               </div>
             </label>
-            <label htmlFor="NFC" className={`payment-label NFCMethod ${selectedPayment === 'NFC' ? 'selected' : ''}`}>
-              <div className="imgContainer NFC">
-                <Image src="https://t4.ftcdn.net/jpg/02/07/03/21/360_F_207032162_N7N5f1fJiadnStSrW8AyEOyDaesmdJQr.jpg" alt="NFC" width={50} height={50} />
+            <label htmlFor="Momo" className={`payment-label MomoMethod ${selectedPayment === 'Momo' ? 'selected' : ''}`}>
+              <div className="imgContainer Momo">
+                <Image src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Square.png" alt="Momo" width={50} height={50} />
               </div>
               <div className="imgName">
-                <span>NFC</span>
+                <span>Momo</span>
                 <div className="check"><FontAwesomeIcon icon={faCircleCheck} /></div>
               </div>
             </label>
@@ -109,6 +158,22 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
         </div>
         <ToastContainer />
       </div>
+
+      {showPopup && (
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg text-center max-w-md mx-auto">
+            <h4 className="mb-4">Số Tiền bạn cần thanh toán là</h4><h4> {formatCurrency(order.total)}</h4>
+            <div className="qr-code mb-4">
+              {selectedPayment === 'VNPay' && <Image src="https://imgur.com/HQWd6Kn.png" alt="VNPay QR" width={200} height={200} />}
+              {selectedPayment === 'Momo' && <Image src="https://imgur.com/TRKh58m.png" alt="Momo QR" width={200} height={200} />}
+            </div>
+            <div className="flex justify-center gap-4">
+              <button className="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600" onClick={handleVNConfirmPayment}>Xác nhận thanh toán</button>
+              <button className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600" onClick={handleClosePopup}>Huỷ</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

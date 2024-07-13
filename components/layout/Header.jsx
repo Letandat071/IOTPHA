@@ -7,7 +7,6 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { useEffect } from "react";
-import axios from "axios";
 import { signOut, useSession } from "next-auth/react";
 
 const Header = () => {

@@ -26,7 +26,7 @@ const Cart = ({ userList }) => {
     total: cart.total,
     products: productState,
     method: 0,
-   paymentstatus:'Chưa thanh toán',
+    paymentstatus: 'Chưa thanh toán',
   };
 
   useEffect(() => {
@@ -51,7 +51,6 @@ const Cart = ({ userList }) => {
           );
           if (res.status === 201) {
             router.push(`/payments`);
-            // /order/${res.data._id}
             dispatch(reset());
             toast.success("Đặt hàng thành công");
           } else if (res.status === 400) {
@@ -81,8 +80,12 @@ const Cart = ({ userList }) => {
     }
   };
 
-  const formatPrice = (price) => {
-    return price.toLocaleString('en-US', { minimumFractionDigits: 3 }) + ' VNĐ';
+  const formatProductPrice = (price) => {
+    return (price * 1000).toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' VNĐ';
+  };
+
+  const formatTotalPrice = (price) => {
+    return (price * 1000).toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' VNĐ';
   };
 
   return (
@@ -94,7 +97,7 @@ const Cart = ({ userList }) => {
               <thead className="text-xs bg-gray-200 uppercase">
                 <tr>
                   <th className="py-3 px-2">Món</th>
-                  <th className="py-3 px-6">Extras</th>
+                  <th className="py-3 px-6">Gọi thêm</th>
                   <th className="py-3 px-2">Giá</th>
                   <th className="py-3 px-6">Số lượng</th>
                 </tr>
@@ -106,19 +109,19 @@ const Cart = ({ userList }) => {
                     key={product._id}
                   >
                     <td className="py-4 px-2 font-medium">
-                      <span className="text-purple-600">{product.title}</span>
+                      <span className="text-gray-700">{product.title}</span>
                     </td>
                     <td className="py-5 px-2 font-medium">
-                      {product.extras.length > 0
+                      {product.extras && product.extras.length > 0
                         ? product.extras.map((item) => (
                             <span key={item._id}>
                               {item.text}
                               <br />
                             </span>
                           ))
-                        : "No Extras"}
+                        : "Không món thêm"}
                     </td>
-                    <td className="py-2 px-4 font-medium">{formatPrice(product.prices[0])}</td>
+                    <td className="py-2 px-4 font-medium">{formatProductPrice(product.prices[0])}</td>
                     <td className="py-4 px-2 font-medium flex justify-center items-center">
                       <button onClick={() => quantityChange(0, product)}>
                         <i className="fa-solid fa-chevron-left mr-3 text-primary cursor-pointer"></i>
@@ -148,12 +151,12 @@ const Cart = ({ userList }) => {
       <div className="bg-gray-100 flex flex-col justify-center text-gray-900 p-6 lg:p-20 lg:w-1/4 w-full text-center lg:text-start rounded-lg shadow-md border border-gray-200">
         <Title addClass="text-[20px] lg:text-[40px]">Giỏ hàng</Title>
         <div className="mt-4 lg:mt-6">
-          <b>Tổng : </b>{formatPrice(cart.total)}<br /> 
+          <b>Tổng : </b>{formatTotalPrice(cart.total)}<br /> 
           <b className="inline-block my-1">Giảm giá: </b> 0 VNĐ<br />
-          <b>Tổng tiền: </b>{formatPrice(cart.total)}
+          <b>Tổng tiền: </b>{formatTotalPrice(cart.total)}
         </div>
         <button
-          className="btn-primary mt-4 md:w-auto w-52"
+          className="btn-primary mt-4 w-full lg:w-auto"
           onClick={createOrder}
         >
           GỌI MÓN NGAY!
