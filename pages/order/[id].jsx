@@ -1,11 +1,11 @@
-// pages/orders/[id].js
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import Payment from '../../components/payment';
 import BillPopup from '../../components/BillPopup';
 import Swal from 'sweetalert2';
 
-const Order = ({ order }) => {
+const Order = ({ initialOrder }) => {
+  const [order, setOrder] = useState(initialOrder);
   const [showPayment, setShowPayment] = useState(false);
   const [showBill, setShowBill] = useState(false);
 
@@ -17,19 +17,32 @@ const Order = ({ order }) => {
       Swal.fire({
         icon: 'success',
         title: 'Thanh toán thành công!',
-        confirmButtonColor: '#4CAF50', // Màu xanh lá
+        confirmButtonColor: '#4CAF50',
         confirmButtonText: 'OK',
-        // timer: 1500,
       });
 
-      // Cập nhật trạng thái thanh toán
       axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
         paymentstatus: 'Đã thanh toán',
       }).then(() => {
-        // Reload order data or update UI as needed
-        window.location.href = window.location.origin + window.location.pathname; // Remove query params
+        window.location.href = window.location.origin + window.location.pathname;
       });
     }
+  }, [order]);
+
+  useEffect(() => {
+    if (!order || !order._id) return;
+
+    const intervalId = setInterval(() => {
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`)
+        .then(response => {
+          setOrder(response.data.data);
+        })
+        .catch(error => {
+          console.error('Error fetching updated order data:', error);
+        });
+    }, 1000); // 10 seconds
+
+    return () => clearInterval(intervalId); // Clear interval on component unmount
   }, [order]);
 
   const handlePaymentClick = () => {
@@ -44,7 +57,6 @@ const Order = ({ order }) => {
     setShowPayment(false);
     setShowBill(true);
 
-    // Cập nhật trạng thái thanh toán
     await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
       paymentstatus: 'Đã thanh toán',
     });
@@ -161,14 +173,14 @@ export const getServerSideProps = async ({ params }) => {
     const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/orders/${params.id}`);
     return {
       props: {
-        order: res.data.data || null,
+        initialOrder: res.data.data || null,
       },
     };
   } catch (error) {
     console.error('Error fetching order data:', error);
     return {
       props: {
-        order: null,
+        initialOrder: null,
       },
     };
   }
