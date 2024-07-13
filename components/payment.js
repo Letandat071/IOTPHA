@@ -43,9 +43,6 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
         });
   
         toast.success("Đang chờ xác nhận!");
-        setTimeout(() => {
-          location.reload();
-        }, 2000); // 2 giây
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
@@ -79,9 +76,6 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
         paymentstatus: 'Đang chờ xác nhận',
       });
       toast.success("Đang chờ xác nhận!");
-        setTimeout(() => {
-          location.reload();
-        }, 2000); // 2 giây
     } catch (error) {
       console.error('Error confirming payment:', error);
       toast.error("Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.");
