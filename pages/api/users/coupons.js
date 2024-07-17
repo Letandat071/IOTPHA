@@ -1,5 +1,5 @@
-import dbConnect from '../../../../util/dbConnect';
-import Coupon from '../../../../models/Coupon';
+import dbConnect from '../../../util/dbConnect';
+import Coupon from '../../../models/Coupon';
 
 export default async function handler(req, res) {
   const { id } = req.query;
