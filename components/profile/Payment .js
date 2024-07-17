@@ -27,22 +27,24 @@ const Payment = ({ orders, onClose, onPaymentSuccess }) => {
         const items = unpaidOrders.flatMap(order =>
           order.products.map(product => ({
             name: product.title,
-            amount: product.price * 1000, // Đơn vị: vnđ
+            amount: Math.round(product.price * 1000), // Đơn vị: VND
             quantity: product.foodQuantity,
-            orderId: order._id
+            orderId: order._id,
+            discountPrice: Math.round((order.discountprice || 0) * 1000) // Đơn vị: VND
           }))
         );
-
-        const orderIds = items.map(item => item.orderId);
-
+      
+        const orderIds = unpaidOrders.map(order => order._id);
+      
         if (items.length === 0) {
           toast.error("Không có đơn hàng nào cần thanh toán.");
           return;
         }
-
+      
         const response = await axios.post('/api/creates-stripe-session', { items, orderIds });
         const { url } = response.data;
         window.location.href = url;
+      
       } else if (selectedPayment === 'tienmat') {
         const updatePromises = unpaidOrders.map(order =>
           axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {

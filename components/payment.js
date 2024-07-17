@@ -27,11 +27,16 @@ const Payment = ({ order, onClose, onPaymentSuccess }) => {
       if (selectedPayment === 'Stripe') {
         const items = order.products.map(product => ({
           name: product.title,
-          amount: product.price * 1000, // Đơn vị: vnđ
+          amount: Math.round(product.price * 1000), // Đơn vị: cents, làm tròn để tránh số thập phân
           quantity: product.foodQuantity,
         }));
   
-        const response = await axios.post('/api/create-stripe-session', { items, orderId: order._id });
+        const response = await axios.post('/api/create-stripe-session', { 
+          items, 
+          orderId: order._id,
+          total: Math.round(order.total * 1000), // Đơn vị: cents, làm tròn để tránh số thập phân
+          discountPrice: Math.round((order.discountprice || 0) * 1000), // Đơn vị: cents, làm tròn để tránh số thập phân
+        });
         const { url } = response.data;
         window.location.href = url;
       } else if (selectedPayment === 'VNPay' || selectedPayment === 'Momo') {

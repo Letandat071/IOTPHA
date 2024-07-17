@@ -12,16 +12,49 @@ export default async function handler(req, res) {
     }
 
     try {
-      const lineItems = items.map((item, index) => ({
-        price_data: {
-          currency: 'VND',
-          product_data: {
-            name: ` ${item.name}`,
-          },
-          unit_amount: item.amount,
-        },
-        quantity: item.quantity,
-      }));
+      // Group items by orderId
+      const orderItems = items.reduce((acc, item) => {
+        if (!acc[item.orderId]) {
+          acc[item.orderId] = [];
+        }
+        acc[item.orderId].push(item);
+        return acc;
+      }, {});
+
+      const lineItems = [];
+
+      Object.keys(orderItems).forEach(orderId => {
+        const order = orderItems[orderId];
+        const discountPrice = order[0].discountPrice || 0; // Discount for this specific order
+
+        // Sort items by price (descending) to apply discount to the most expensive item
+        order.sort((a, b) => b.amount - a.amount);
+
+        order.forEach((item, index) => {
+          let itemPrice = item.amount;
+          let itemName = item.name;
+
+          // Apply entire discount to the first (most expensive) item
+          if (index === 0 && discountPrice > 0) {
+            itemPrice = Math.max(0, itemPrice - discountPrice);
+            itemName += ` (Đã giảm giá ${discountPrice.toLocaleString('vi-VN')} VND)`;
+          }
+
+          // Round price to nearest 100 VND
+          itemPrice = Math.round(itemPrice / 100) * 100;
+
+          lineItems.push({
+            price_data: {
+              currency: 'VND',
+              product_data: {
+                name: itemName,
+              },
+              unit_amount: itemPrice,
+            },
+            quantity: item.quantity,
+          });
+        });
+      });
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
