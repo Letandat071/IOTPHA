@@ -16,6 +16,10 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    discountprice: {
+      type: Number,
+      required: true,
+    },
     id_customer: {
       type: String,
       required: true,

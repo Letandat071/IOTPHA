@@ -16,7 +16,7 @@ const Category = () => {
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState(null);
-
+  const [showPlaceholder, setShowPlaceholder] = useState(true);
   useEffect(() => {
     const getCategories = async () => {
       try {
@@ -80,7 +80,7 @@ const Category = () => {
     try {
       const res = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/categories/${updatedCategory._id}`, updatedCategory);
       if (res.status === 200) {
-        setCategories(categories.map((cat) => (cat._id === updatedCategory._id ? updatedCategory : cat)));
+        setCategories(categories.map((cat) => (cat._id === updatedCategory._id ? res.data.data : cat)));
         toast.success("Cập Nhật Danh Mục Thành Công", {
           position: "bottom-left",
         });
@@ -97,6 +97,7 @@ const Category = () => {
       });
     }
   };
+  
 
   const updateCategories = async () => {
     try {
@@ -111,12 +112,15 @@ const Category = () => {
     <div className="lg:p-8 p-4 flex-1 lg:mt-0 mt-5 bg-white-59 rounded-lg shadow-lg">
       <Title addClass="text-[40px] text-center text-black">Danh Mục</Title>
       <div className="mt-5 flex gap-4 items-center">
-        <Input
-          placeholder="Thêm Danh Mục !"
-          onChange={(e) => setInputText(e.target.value)}
-          value={inputText}
-          className="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
-        />
+       <Input
+  placeholder={showPlaceholder ? "Thêm Danh Mục !" : ""}
+  onChange={(e) => {
+    setInputText(e.target.value);
+    setShowPlaceholder(e.target.value === "");
+  }}
+  value={inputText}
+  className="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+/>
         <button
           className="flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-semibold p-4 rounded-full shadow-lg transition duration-300"
           onClick={handleCreate}

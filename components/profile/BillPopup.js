@@ -76,6 +76,8 @@ const BillPopup = ({ orders, onClose }) => {
         cursorY += 5;
         pdf.text(`Tổng số tiền: ${formatCurrency(order.total)}`, margin, cursorY);
         cursorY += lineHeight;
+        pdf.text(`Giảm giá: ${formatCurrency(order.discountprice)}`, margin, cursorY);
+        cursorY += lineHeight;
         pdf.text(`Trạng thái: ${order.paymentstatus}`, margin, cursorY);
         cursorY += lineHeight * 2;
         pdf.text(`___________________________________________________________________________________________________________________`, margin, cursorY);
@@ -106,6 +108,7 @@ const BillPopup = ({ orders, onClose }) => {
                 ))}
               </ul>
               <p className="mt-2"><strong>Tổng số tiền:</strong> {formatCurrency(order.total)}</p>
+              <p className="mt-2"><strong>Giảm giá:</strong> {formatCurrency(order.discountprice)}</p>
               <p><strong>Trạng Thái:</strong> {order.paymentstatus}</p>
             </div>
           ))}

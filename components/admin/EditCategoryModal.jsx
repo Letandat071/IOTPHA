@@ -20,6 +20,7 @@ const EditCategoryModal = ({ setIsEditCategoryModal, selectedCategory, handleUpd
     e.preventDefault();
     await handleUpdateCategory(category);
   };
+  
 
   const handleClose = () => {
     setVisible(false);

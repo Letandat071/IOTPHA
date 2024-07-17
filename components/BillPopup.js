@@ -73,6 +73,8 @@ const BillPopup = ({ order, onClose }) => {
       pdf.setFontSize(14);
       pdf.text(`Tổng số tiền: ${formatCurrency(order.total)}`, margin, cursorY);
       cursorY += lineHeight;
+      pdf.text(`Giảm Giá: ${formatCurrency(order.discountprice)}`, margin, cursorY);
+      cursorY += lineHeight;
       pdf.setFontSize(12);
       pdf.text(`Thanh Toán: ${order.paymentstatus}`, margin, cursorY);
 
@@ -100,6 +102,7 @@ const BillPopup = ({ order, onClose }) => {
             </ul>
           </div>
           <p><strong>Tổng số tiền:</strong> {formatCurrency(order.total)}</p>
+          <p><strong>Giảm giá:</strong> {formatCurrency(order.discountprice)}</p>
           <p><strong>Trạng Thái:</strong> {order.paymentstatus}</p>
         </div>
         <div className="flex justify-end mt-4">

@@ -8,6 +8,7 @@ import Footer from "../../components/admin/Footer";
 import Order from "../../components/admin/Order";
 import Products from "../../components/admin/Products";
 import Tables from "../../components/admin/Tables";
+import Coupon from "../../components/admin/CouponList";
 import CategoryVisibilityUpdater from "../../components/admin/CategoryVisibilityUpdater"; // Import the new component
 import { toast } from "react-toastify";
 
@@ -173,6 +174,13 @@ const Profile = () => {
             className={`border w-full p-3 cursor-pointer hover:bg-gray-600 hover:text-white transition-all ${tabs === 4 && "bg-gray-600 text-white"}`}
             onClick={() => setTabs(4)}
           >
+            <i className="fa fa-table"></i>
+            <button className="ml-1">Quản Mã giảm giá</button>
+          </li>
+          <li
+            className={`border w-full p-3 cursor-pointer hover:bg-gray-600 hover:text-white transition-all ${tabs === 5 && "bg-gray-600 text-white"}`}
+            onClick={() => setTabs(5)}
+          >
             <i className="fa fa-window-maximize"></i>
             <button className="ml-1">Cài Đặt Footer</button>
           </li>
@@ -186,7 +194,7 @@ const Profile = () => {
             </button>
           </li>
           <li
-            className={`border w-full p-3 cursor-pointer hover:bg-gray-600 hover:text-white transition-all ${tabs === 5 && "bg-gray-600 text-white"}`}
+            className={`border w-full p-3 cursor-pointer hover:bg-gray-600 hover:text-white transition-all ${tabs === 6 && "bg-gray-600 text-white"}`}
             onClick={closeAdminAccount}
           >
             <i className="fa fa-sign-out"></i>
@@ -198,7 +206,8 @@ const Profile = () => {
       {tabs === 1 && <Order />}
       {tabs === 2 && <Category />}
       {tabs === 3 && <Tables />}
-      {tabs === 4 && <Footer />}
+      {tabs === 4 && <Coupon />}
+      {tabs === 5 && <Footer />}
       <CategoryVisibilityUpdater /> {/* Include the new component */}
     </div>
   );

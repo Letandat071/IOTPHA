@@ -55,7 +55,6 @@ const Order = ({ initialOrder }) => {
 
   const handlePaymentSuccess = async () => {
     setShowPayment(false);
-    setShowBill(true);
 
     await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order._id}`, {
       paymentstatus: 'Đã thanh toán',
@@ -77,6 +76,10 @@ const Order = ({ initialOrder }) => {
 
     return `${formattedInteger}.${decimalPart} VNĐ`;
   };
+
+  const showbillPopup = () => {
+    setShowBill(true);
+  }
 
   return (
     <div className="flex flex-col min-h-screen p-10">
@@ -154,7 +157,7 @@ const Order = ({ initialOrder }) => {
           </table>
         </div>
         <div className="flex justify-center mt-4">
-          <button className="btn-primary mr-5" onClick={handlePaymentSuccess}>In Hoá Đơn</button>
+          <button className="btn-primary mr-5" onClick={showbillPopup}>In Hoá Đơn</button>
           <button className="btn-primary" 
             onClick={handlePaymentClick} 
             disabled={order.paymentstatus === "Đã thanh toán" || order.paymentstatus === "Đang chờ xác nhận"}

@@ -86,7 +86,7 @@ const AddProduct = ({ setIsProductModal }) => {
         desc,
         prices,
         soLuong,
-        category: category.toLowerCase(),
+        category: category,
         extraOptions,
       };
 
@@ -224,7 +224,7 @@ const AddProduct = ({ setIsProductModal }) => {
                   categories.map((category) => (
                     <option
                       key={category._id}
-                      value={category.title.toLowerCase()}
+                      value={category.title}
                     >
                       {category.title}
                     </option>
@@ -321,7 +321,8 @@ const AddProduct = ({ setIsProductModal }) => {
               </button>
             ) : (
               <button
-                className="btn-primary !bg-green-600 right-8 bottom-6 absolute text-white rounded-md px-4 py-2"
+                className="btn-primary !bg-green-600 right-9 mt-5  text-white  rounded-md px-4 py-2
+                "
                 onClick={handleCreate}
                 type="submit"
               >

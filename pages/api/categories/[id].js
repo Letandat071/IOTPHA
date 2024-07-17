@@ -1,4 +1,3 @@
-// pages/api/categories/[id].js
 import Category from "../../../models/Category";
 import dbConnect from "../../../util/dbConnect";
 
@@ -7,6 +6,7 @@ const handler = async (req, res) => {
   const {
     method,
     query: { id },
+    body
   } = req;
 
   switch (method) {
@@ -36,14 +36,13 @@ const handler = async (req, res) => {
 
     case "PUT":
       try {
-        const { visible } = req.body;
-        const updatedCategory = await Category.findByIdAndUpdate(id, { visible }, { new: true });
+        const updatedCategory = await Category.findByIdAndUpdate(id, body, { new: true });
         if (!updatedCategory) {
           return res.status(404).json({ success: false, message: "Category not found" });
         }
         res.status(200).json({ success: true, data: updatedCategory });
       } catch (error) {
-        res.status500().json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: error.message });
       }
       break;
 
